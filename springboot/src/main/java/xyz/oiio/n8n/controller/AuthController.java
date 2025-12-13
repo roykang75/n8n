@@ -1,6 +1,7 @@
 package xyz.oiio.n8n.controller;
 
 import jakarta.validation.Valid;
+import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -24,7 +25,7 @@ import java.util.Optional;
 
 @Slf4j
 @RestController
-@RequestMapping("/api/auth")
+@RequestMapping("/rest")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -34,17 +35,19 @@ public class AuthController {
     private final PasswordEncoder passwordEncoder;
 
     @PostMapping("/login")
-    public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<Map<String, Object>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest,
+            HttpServletResponse response) {
         try {
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    loginRequest.getEmail(),
-                    loginRequest.getPassword()
-                )
-            );
+                    new UsernamePasswordAuthenticationToken(
+                            loginRequest.getEmail(),
+                            loginRequest.getPassword()));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
+
+            // Set cookie
+            addAuthCookie(response, jwt);
 
             // Get user details
             Optional<xyz.oiio.n8n.entity.User> userOpt = userService.findByEmail(loginRequest.getEmail());
@@ -57,21 +60,19 @@ public class AuthController {
                 userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
             });
 
-            return ResponseEntity.ok(new AuthResponse(true, "Authentication successful", jwt, userInfo));
+            return ResponseEntity.ok(Map.of("data", userInfo));
         } catch (Exception e) {
             log.error("Authentication failed for user: {}", loginRequest.getEmail(), e);
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(new AuthResponse(false, "Invalid email or password", null, null));
+            throw new RuntimeException("Invalid email or password");
         }
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+    public ResponseEntity<Map<String, Object>> registerUser(@Valid @RequestBody RegisterRequest registerRequest,
+            HttpServletResponse response) {
         try {
-            // Check if user already exists
             if (userService.findByEmail(registerRequest.getEmail()).isPresent()) {
-                return ResponseEntity.badRequest()
-                        .body(new AuthResponse(false, "Email is already registered", null, null));
+                throw new RuntimeException("Email is already registered");
             }
 
             // Create new user
@@ -90,14 +91,15 @@ public class AuthController {
 
             // Auto-login after registration
             Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(
-                    registerRequest.getEmail(),
-                    registerRequest.getPassword()
-                )
-            );
+                    new UsernamePasswordAuthenticationToken(
+                            registerRequest.getEmail(),
+                            registerRequest.getPassword()));
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
+
+            // Set cookie
+            addAuthCookie(response, jwt);
 
             Map<String, Object> userInfo = new HashMap<>();
             userInfo.put("id", createdUser.getId());
@@ -107,12 +109,77 @@ public class AuthController {
             userInfo.put("roles", List.of(createdUser.getRole().name().toLowerCase()));
 
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new AuthResponse(true, "User registered successfully", jwt, userInfo));
+                    .body(Map.of("data", userInfo));
         } catch (Exception e) {
             log.error("Registration failed for user: {}", registerRequest.getEmail(), e);
-            return ResponseEntity.badRequest()
-                    .body(new AuthResponse(false, "Registration failed: " + e.getMessage(), null, null));
+            throw new RuntimeException("Registration failed: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/owner/setup")
+    public ResponseEntity<Map<String, Object>> setupOwner(@Valid @RequestBody RegisterRequest registerRequest,
+            HttpServletResponse response) {
+        try {
+            if (userService.findByEmail(registerRequest.getEmail()).isPresent()) {
+                throw new RuntimeException("Email is already registered");
+            }
+
+            // Create new owner user
+            xyz.oiio.n8n.entity.User newUser = xyz.oiio.n8n.entity.User.builder()
+                    .id(java.util.UUID.randomUUID().toString())
+                    .email(registerRequest.getEmail())
+                    .firstName(registerRequest.getFirstName())
+                    .lastName(registerRequest.getLastName())
+                    .password(passwordEncoder.encode(registerRequest.getPassword()))
+                    .disabled(false)
+                    .mfaEnabled(false)
+                    .role(xyz.oiio.n8n.entity.User.UserRole.OWNER)
+                    .build();
+
+            xyz.oiio.n8n.entity.User createdUser = userService.saveUser(newUser);
+
+            // Auto-login after setup
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            registerRequest.getEmail(),
+                            registerRequest.getPassword()));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+
+            // Set cookie
+            addAuthCookie(response, jwt);
+
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", createdUser.getId());
+            userInfo.put("email", createdUser.getEmail());
+            userInfo.put("firstName", createdUser.getFirstName());
+            userInfo.put("lastName", createdUser.getLastName());
+            userInfo.put("roles", List.of(createdUser.getRole().name().toLowerCase()));
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("data", userInfo));
+        } catch (Exception e) {
+            log.error("Owner setup failed for: {}", registerRequest.getEmail(), e);
+            throw new RuntimeException("Owner setup failed: " + e.getMessage());
+        }
+    }
+
+    private void addAuthCookie(HttpServletResponse response, String token) {
+        // Create cookie with name "n8n-auth"
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("n8n-auth", token);
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(24 * 60 * 60); // 1 day
+        // In production with HTTPS, you should uncomment this:
+        // cookie.setSecure(true);
+
+        response.addCookie(cookie);
+    }
+
+    @GetMapping("/")
+    public ResponseEntity<String> root() {
+        return ResponseEntity.ok("n8n Spring Boot Backend is running! API endpoints are at /rest");
     }
 
     @PostMapping("/refresh")
@@ -128,8 +195,7 @@ public class AuthController {
                     if (userOpt.isPresent()) {
                         // Create authentication for token generation
                         Authentication authentication = new UsernamePasswordAuthenticationToken(
-                            email, null, null
-                        );
+                                email, null, null);
 
                         String newJwt = tokenProvider.generateToken(authentication);
 
@@ -141,7 +207,8 @@ public class AuthController {
                         userInfo.put("lastName", user.getLastName());
                         userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
 
-                        return ResponseEntity.ok(new AuthResponse(true, "Token refreshed successfully", newJwt, userInfo));
+                        return ResponseEntity
+                                .ok(new AuthResponse(true, "Token refreshed successfully", newJwt, userInfo));
                     }
                 }
             }

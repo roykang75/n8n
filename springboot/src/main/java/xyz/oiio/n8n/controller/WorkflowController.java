@@ -24,7 +24,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/workflows")
+@RequestMapping("/rest/workflows")
 @RequiredArgsConstructor
 public class WorkflowController {
 
@@ -40,7 +40,8 @@ public class WorkflowController {
             xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
             WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(), currentUser);
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new WorkflowResponse(true, "Workflow created successfully", new WorkflowDto(createdWorkflow)));
+                    .body(new WorkflowResponse(true, "Workflow created successfully",
+                            new WorkflowDto(createdWorkflow)));
         } catch (Exception e) {
             return ResponseEntity.badRequest()
                     .body(new WorkflowResponse(false, e.getMessage(), null));
@@ -52,7 +53,8 @@ public class WorkflowController {
     public ResponseEntity<WorkflowResponse> getWorkflow(@PathVariable String workflowId) {
         try {
             WorkflowEntity workflow = workflowService.getWorkflowById(workflowId);
-            return ResponseEntity.ok(new WorkflowResponse(true, "Workflow retrieved successfully", new WorkflowDto(workflow)));
+            return ResponseEntity
+                    .ok(new WorkflowResponse(true, "Workflow retrieved successfully", new WorkflowDto(workflow)));
         } catch (WorkflowService.NotFoundException e) {
             return ResponseEntity.notFound().build();
         }
@@ -105,7 +107,8 @@ public class WorkflowController {
             @Valid @RequestBody UpdateWorkflowRequest request) {
         try {
             WorkflowEntity updatedWorkflow = workflowService.updateWorkflow(workflowId, request.toServiceRequest());
-            return ResponseEntity.ok(new WorkflowResponse(true, "Workflow updated successfully", new WorkflowDto(updatedWorkflow)));
+            return ResponseEntity
+                    .ok(new WorkflowResponse(true, "Workflow updated successfully", new WorkflowDto(updatedWorkflow)));
         } catch (WorkflowService.NotFoundException e) {
             return ResponseEntity.notFound().build();
         }
@@ -154,7 +157,7 @@ public class WorkflowController {
 
     @GetMapping("/tag/{tagName}")
     public ResponseEntity<WorkflowsResponse> getWorkflowsByTag(@PathVariable String tagName,
-                                                             Authentication authentication) {
+            Authentication authentication) {
         try {
             xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
             List<WorkflowEntity> workflows = workflowService.getWorkflowsByUser(currentUser);
@@ -202,9 +205,8 @@ public class WorkflowController {
 
         public WorkflowService.WorkflowRequest toServiceRequest() {
             return new WorkflowService.WorkflowRequest(
-                name, description, nodes, connections, settings, staticData,
-                meta, pinData, projectId, tagNames
-            );
+                    name, description, nodes, connections, settings, staticData,
+                    meta, pinData, projectId, tagNames);
         }
     }
 
@@ -225,9 +227,8 @@ public class WorkflowController {
 
         public WorkflowService.WorkflowRequest toServiceRequest() {
             return new WorkflowService.WorkflowRequest(
-                name, description, nodes, connections, settings, staticData,
-                meta, pinData, projectId, tagNames
-            );
+                    name, description, nodes, connections, settings, staticData,
+                    meta, pinData, projectId, tagNames);
         }
     }
 
@@ -285,12 +286,13 @@ public class WorkflowController {
             this.versionId = workflow.getVersionId();
             this.versionCounter = workflow.getVersionCounter();
             this.triggerCount = workflow.getTriggerCount();
-            this.tagNames = workflow.getTags() != null ?
-                workflow.getTags().stream().map(tag -> tag.getName()).collect(Collectors.toList()) :
-                List.of();
+            this.tagNames = workflow.getTags() != null
+                    ? workflow.getTags().stream().map(tag -> tag.getName()).collect(Collectors.toList())
+                    : List.of();
             this.projectId = workflow.getProject() != null ? workflow.getProject().getId().toString() : null;
-            this.ownerName = workflow.getOwner() != null ?
-                workflow.getOwner().getFirstName() + " " + workflow.getOwner().getLastName() : null;
+            this.ownerName = workflow.getOwner() != null
+                    ? workflow.getOwner().getFirstName() + " " + workflow.getOwner().getLastName()
+                    : null;
             this.createdAt = workflow.getCreatedAt().toString();
             this.updatedAt = workflow.getUpdatedAt().toString();
         }

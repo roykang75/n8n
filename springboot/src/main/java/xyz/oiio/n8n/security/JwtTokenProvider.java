@@ -15,10 +15,10 @@ import java.util.Date;
 @Component
 public class JwtTokenProvider {
 
-    @Value("${app.jwt.secret:mySecretKey}")
+    @Value("${n8n.security.jwt.secret}")
     private String jwtSecret;
 
-    @Value("${app.jwt.expiration-in-ms:86400000}")
+    @Value("${n8n.security.jwt.expiration:86400000}")
     private int jwtExpirationInMs;
 
     private SecretKey getSigningKey() {
@@ -50,9 +50,9 @@ public class JwtTokenProvider {
     public boolean validateToken(String token) {
         try {
             Jwts.parser()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (SecurityException ex) {
             log.error("Invalid JWT signature");

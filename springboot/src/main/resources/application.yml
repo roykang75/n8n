@@ -1,7 +1,7 @@
 server:
-  port: 8080
+  port: 5678
   servlet:
-    context-path: /api
+    context-path: /
 
 spring:
   application:
@@ -67,7 +67,7 @@ spring:
 n8n:
   security:
     jwt:
-      secret: n8n-jwt-secret-key-change-this-in-production
+      secret: DvNLz7u4pkUqzmXXjqlkO2Pz/p7i+CVQJ8+WEv5F5nM=
       expiration: 86400000 # 24 hours
       refresh-token-expiration: 1209600000 # 14 days
 
@@ -140,7 +140,7 @@ spring:
 n8n:
   security:
     jwt:
-      secret: ${JWT_SECRET:n8n-jwt-secret-key-change-this-in-production}
+      secret: DvNLz7u4pkUqzmXXjqlkO2Pz/p7i+CVQJ8+WEv5F5nM=
 
 logging:
   level:

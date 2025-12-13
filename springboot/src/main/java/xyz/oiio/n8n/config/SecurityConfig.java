@@ -26,7 +26,7 @@ import xyz.oiio.n8n.security.JwtAuthenticationFilter;
 import java.util.Arrays;
 import java.util.List;
 
-@Profile({"default", "dev"})
+@Profile({ "default", "dev" })
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true)
@@ -58,39 +58,44 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-            .csrf(AbstractHttpConfigurer::disable)
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(authz -> authz
-                // 공개 엔드포인트
-                .requestMatchers("/api/auth/**").permitAll()
-                .requestMatchers("/api/health").permitAll()
-                .requestMatchers("/api/public/**").permitAll()
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(authz -> authz
+                        // 공개 엔드포인트
+                        .requestMatchers("/rest/login", "/rest/register", "/rest/owner/setup", "/rest/refresh",
+                                "/rest/forgot-password",
+                                "/rest/resolve-signup-token", "/rest/settings",
+                                "/rest/projects/**", "/rest/roles", "/rest/module-settings",
+                                "/rest/workflows", "/rest/active-workflows", "/rest/license")
+                        .permitAll()
+                        .requestMatchers("/static/**").permitAll()
+                        .requestMatchers("/rest/health").permitAll()
+                        .requestMatchers("/").permitAll()
+                        .requestMatchers("/rest/public/**").permitAll()
 
-                // Actuator 엔드포인트 (프로덕션에서는 제한 가능)
-                .requestMatchers("/actuator/health").permitAll()
-                .requestMatchers("/actuator/info").permitAll()
+                        // Actuator 엔드포인트 (프로덕션에서는 제한 가능)
+                        .requestMatchers("/actuator/health").permitAll()
+                        .requestMatchers("/actuator/info").permitAll()
 
-                // 정적 리소스
-                .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**").permitAll()
+                        // 정적 리소스
+                        .requestMatchers("/css/**", "/js/**", "/images/**", "/favicon.ico", "/webjars/**").permitAll()
 
-                // WebSocket 엔드포인트 (워크플로우 실행용)
-                .requestMatchers("/ws/**").permitAll()
+                        // WebSocket 엔드포인트 (워크플로우 실행용)
+                        .requestMatchers("/ws/**").permitAll()
 
-                // Swagger/Swagger UI (개발 환경)
-                .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
+                        // Swagger/Swagger UI (개발 환경)
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
 
-                // 관리자 엔드포인트
-                .requestMatchers("/api/admin/**").hasRole("ADMIN")
+                        // 관리자 엔드포인트
+                        .requestMatchers("/rest/admin/**").hasRole("ADMIN")
 
-                // 기타 모든 요청은 인증 필요
-                .anyRequest().authenticated()
-            )
-            .authenticationProvider(authenticationProvider())
-            .exceptionHandling(exception -> exception
-                .authenticationEntryPoint(jwtAuthenticationEntryPoint)
-            )
-            .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                        // 기타 모든 요청은 인증 필요
+                        .anyRequest().authenticated())
+                .authenticationProvider(authenticationProvider())
+                .exceptionHandling(exception -> exception
+                        .authenticationEntryPoint(jwtAuthenticationEntryPoint))
+                .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
@@ -123,7 +128,7 @@ public class SecurityConfig {
     }
 }
 
-@Profile({"no-auth", "test"})
+@Profile({ "no-auth", "test" })
 @Configuration
 @EnableWebSecurity
 class NoAuthSecurityConfig {
@@ -136,8 +141,8 @@ class NoAuthSecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(csrf -> csrf.disable())
-            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
+                .csrf(csrf -> csrf.disable())
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
 
         return http.build();
     }

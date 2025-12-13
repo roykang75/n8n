@@ -29,7 +29,7 @@ springboot/
 │   │   │   │   ├── SecurityConfig.java
 │   │   │   │   ├── WebSocketConfig.java
 │   │   │   │   └── AsyncConfig.java
-│   │   │   ├── controller/      # REST API controllers
+│   │   │   ├── controller/      # REST API controllers (mapped to /rest/...)
 │   │   │   │   ├── WorkflowController.java
 │   │   │   │   ├── ExecutionController.java
 │   │   │   │   ├── UserController.java
@@ -220,6 +220,36 @@ public class DatabaseConfig {
             .baselineOnMigrate(true)
             .validateOnMigrate(false)
             .load();
+    }
+}
+
+### Security Configuration
+```java
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.web.SecurityFilterChain;
+
+@Configuration
+@EnableWebSecurity
+public class SecurityConfig {
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+        http
+            .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers("/rest/login", "/rest/owner/setup").permitAll()
+                .requestMatchers("/rest/health").permitAll()
+                .requestMatchers("/rest/public/**").permitAll()
+                .anyRequest().authenticated() // Default to authenticated for other requests
+            )
+            // Disable CSRF for API endpoints, enable for form-based login if applicable
+            .csrf(csrf -> csrf.disable())
+            // Add JWT filter or other authentication mechanisms here
+            // .addFilterBefore(jwtAuthenticationFilter(), UsernamePasswordAuthenticationFilter.class)
+            ;
+        return http.build();
     }
 }
 ```

@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/rest/users")
 @RequiredArgsConstructor
 public class UserController {
 
@@ -76,7 +76,7 @@ public class UserController {
     @PutMapping("/{userId}")
     @PreAuthorize("hasRole('ADMIN') or #userId == authentication.name")
     public ResponseEntity<UserResponse> updateUser(@PathVariable String userId,
-                                                  @Valid @RequestBody UpdateUserRequest request) {
+            @Valid @RequestBody UpdateUserRequest request) {
         try {
             xyz.oiio.n8n.entity.User user = userService.getUserById(userId);
 
@@ -122,12 +122,12 @@ public class UserController {
 
         public UserRequest toServiceRequest() {
             return new UserRequest(
-                email,
-                firstName,
-                lastName,
-                password,
-                role != null ? role : xyz.oiio.n8n.entity.User.UserRole.USER,
-                null // settings
+                    email,
+                    firstName,
+                    lastName,
+                    password,
+                    role != null ? role : xyz.oiio.n8n.entity.User.UserRole.USER,
+                    null // settings
             );
         }
     }

@@ -19,40 +19,41 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserRepository userRepository;
+        private final UserRepository userRepository;
 
-    @Override
-    @Transactional
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        xyz.oiio.n8n.entity.User user = userRepository.findByEmail(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+        @Override
+        @Transactional
+        public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
+                xyz.oiio.n8n.entity.User user = userRepository.findByEmail(email)
+                                .orElseThrow(() -> new UsernameNotFoundException(
+                                                "User not found with email: " + email));
 
-        log.info("Loading user: {}", email);
+                log.info("Found user: {} with id: {} and password hash: {}", email, user.getId(), user.getPassword());
 
-        return new User(
-                user.getId(),
-                user.getPassword(),
-                user.getDisabled() == null || !user.getDisabled(),
-                true,
-                true,
-                user.getMfaEnabled() == null || !user.getMfaEnabled(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
-    }
+                log.info("Loading user: {}", email);
 
-    @Transactional
-    public UserDetails loadUserById(String userId) throws UsernameNotFoundException {
-        xyz.oiio.n8n.entity.User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+                return new User(
+                                user.getId(),
+                                user.getPassword(),
+                                user.getDisabled() == null || !user.getDisabled(),
+                                true,
+                                true,
+                                user.getMfaEnabled() == null || !user.getMfaEnabled(),
+                                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
+        }
 
-        return new User(
-                user.getId(),
-                user.getPassword(),
-                user.getDisabled() == null || !user.getDisabled(),
-                true,
-                true,
-                user.getMfaEnabled() == null || !user.getMfaEnabled(),
-                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()))
-        );
-    }
+        @Transactional
+        public UserDetails loadUserById(String userId) throws UsernameNotFoundException {
+                xyz.oiio.n8n.entity.User user = userRepository.findById(userId)
+                                .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
+
+                return new User(
+                                user.getId(),
+                                user.getPassword(),
+                                user.getDisabled() == null || !user.getDisabled(),
+                                true,
+                                true,
+                                user.getMfaEnabled() == null || !user.getMfaEnabled(),
+                                Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
+        }
 }
