@@ -54,6 +54,9 @@ public class SettingsController {
                 enterprise.put("sourceControl", false);
                 enterprise.put("auditLogs", false);
                 enterprise.put("externalSecrets", false);
+                // Projects settings - required by frontend projects.store.ts
+                enterprise.put("projects", Map.of(
+                                "team", Map.of("limit", -1)));
                 settings.put("enterprise", enterprise);
 
                 // General Settings
@@ -68,6 +71,7 @@ public class SettingsController {
                 settings.put("versionCli", "1.0.0");
                 settings.put("nodeJsVersion", "21");
                 settings.put("defaultLocale", "en");
+                settings.put("license", Map.of("planName", "Community"));
 
                 // PostHog / Telemetry
                 settings.put("telemetry", Map.of("enabled", false));

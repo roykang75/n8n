@@ -86,14 +86,14 @@ const plugins: UserConfig['plugins'] = [
 	// Add istanbul coverage plugin for E2E tests
 	...(process.env.BUILD_WITH_COVERAGE === 'true'
 		? [
-				istanbul({
-					include: 'src/**/*',
-					exclude: ['node_modules', 'tests/', 'dist/'],
-					extension: ['.js', '.ts', '.vue'],
-					forceBuildInstrument: true,
-					requireEnv: false,
-				}),
-			]
+			istanbul({
+				include: 'src/**/*',
+				exclude: ['node_modules', 'tests/', 'dist/'],
+				extension: ['.js', '.ts', '.vue'],
+				forceBuildInstrument: true,
+				requireEnv: false,
+			}),
+		]
 		: []),
 	viteStaticCopy({
 		targets: [
@@ -135,9 +135,9 @@ const plugins: UserConfig['plugins'] = [
 			// will replace it with the actual config script in cli/src/commands/start.ts.
 			return ctx.server
 				? html
-						.replace('%CONFIG_TAGS%', '')
-						.replaceAll('/{{BASE_PATH}}', '//localhost:5678')
-						.replaceAll('/{{REST_ENDPOINT}}', '/rest')
+					.replace('%CONFIG_TAGS%', '')
+					.replaceAll('/{{BASE_PATH}}', '')
+					.replaceAll('/{{REST_ENDPOINT}}', '/rest')
 				: html;
 		},
 	},
@@ -168,16 +168,16 @@ const plugins: UserConfig['plugins'] = [
 	},
 	...(release
 		? [
-				sentryVitePlugin({
-					org: 'n8nio',
-					project: 'instance-frontend',
-					authToken: process.env.SENTRY_AUTH_TOKEN,
-					telemetry: false,
-					release: {
-						name: `n8n@${release}`,
-					},
-				}),
-			]
+			sentryVitePlugin({
+				org: 'n8nio',
+				project: 'instance-frontend',
+				authToken: process.env.SENTRY_AUTH_TOKEN,
+				telemetry: false,
+				release: {
+					name: `n8n@${release}`,
+				},
+			}),
+		]
 		: []),
 ];
 
@@ -195,6 +195,22 @@ export default mergeConfig(
 		resolve: { alias },
 		base: publicPath,
 		envPrefix: ['VUE', 'N8N_ENV_FEAT'],
+		server: {
+			proxy: {
+				'/rest': {
+					target: 'http://localhost:5678',
+					changeOrigin: true,
+				},
+				'/webhook': {
+					target: 'http://localhost:5678',
+					changeOrigin: true,
+				},
+				'/healthz': {
+					target: 'http://localhost:5678',
+					changeOrigin: true,
+				},
+			},
+		},
 		css: {
 			preprocessorOptions: {
 				scss: {

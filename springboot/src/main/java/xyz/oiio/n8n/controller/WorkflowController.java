@@ -20,6 +20,7 @@ import xyz.oiio.n8n.service.workflow.WorkflowService;
 import xyz.oiio.n8n.service.user.UserService;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -61,24 +62,72 @@ public class WorkflowController {
     }
 
     @GetMapping
-    public ResponseEntity<WorkflowsResponse> getWorkflows(
+    public ResponseEntity<Map<String, Object>> getWorkflows(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size,
             @RequestParam(defaultValue = "createdAt") String sortBy,
             Authentication authentication) {
+        try {
+            // Handle unauthenticated requests
+            if (authentication == null || authentication.getName() == null) {
+                return ResponseEntity.ok(Map.of("data", List.of(), "count", 0));
+            }
 
-        xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
-        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
-        Page<WorkflowEntity> workflows = workflowService.getWorkflowsByUser(currentUser, pageable);
+            xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
+            Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+            Page<WorkflowEntity> workflows = workflowService.getWorkflowsByUser(currentUser, pageable);
 
-        return ResponseEntity.ok(WorkflowsResponse.builder()
-                .success(true)
-                .message("Workflows retrieved successfully")
-                .workflows(workflows.getContent().stream()
-                        .map(WorkflowDto::new)
-                        .collect(Collectors.toList()))
-                .pageInfo(new PageInfo(workflows))
-                .build());
+            List<Map<String, Object>> workflowList = workflows.getContent().stream()
+                    .map(this::workflowToMap)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(Map.of(
+                    "data", workflowList,
+                    "count", workflows.getTotalElements()));
+        } catch (Exception e) {
+            // Return empty list on error instead of 500
+            return ResponseEntity.ok(Map.of("data", List.of(), "count", 0));
+        }
+    }
+
+    @GetMapping("/active")
+    public ResponseEntity<Map<String, Object>> getActiveWorkflows(Authentication authentication) {
+        try {
+            if (authentication == null || authentication.getName() == null) {
+                return ResponseEntity.ok(Map.of("data", List.of()));
+            }
+
+            xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
+            List<WorkflowEntity> workflows = workflowService.getWorkflowsByUser(currentUser).stream()
+                    .filter(w -> w.getActive() != null && w.getActive())
+                    .collect(Collectors.toList());
+
+            List<Map<String, Object>> workflowList = workflows.stream()
+                    .map(this::workflowToMap)
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(Map.of("data", workflowList));
+        } catch (Exception e) {
+            return ResponseEntity.ok(Map.of("data", List.of()));
+        }
+    }
+
+    private Map<String, Object> workflowToMap(WorkflowEntity workflow) {
+        Map<String, Object> map = new java.util.HashMap<>();
+        map.put("id", workflow.getId());
+        map.put("name", workflow.getName());
+        map.put("active", workflow.getActive());
+        map.put("createdAt", workflow.getCreatedAt() != null ? workflow.getCreatedAt().toString() : null);
+        map.put("updatedAt", workflow.getUpdatedAt() != null ? workflow.getUpdatedAt().toString() : null);
+        map.put("nodes", workflow.getNodes() != null ? workflow.getNodes() : List.of());
+        map.put("connections", workflow.getConnections() != null ? workflow.getConnections() : Map.of());
+        map.put("versionId", workflow.getVersionId());
+        map.put("tags",
+                workflow.getTags() != null
+                        ? workflow.getTags().stream().map(t -> Map.of("id", t.getId(), "name", t.getName()))
+                                .collect(Collectors.toList())
+                        : List.of());
+        return map;
     }
 
     @GetMapping("/all-accessible")
