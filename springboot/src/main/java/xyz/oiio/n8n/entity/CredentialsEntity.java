@@ -58,7 +58,7 @@ public class CredentialsEntity extends BaseTimeEntity {
     @Column(name = "project_id", columnDefinition = "BIGINT")
     private Long projectId;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = true)
     @JsonIgnore
     private User owner;

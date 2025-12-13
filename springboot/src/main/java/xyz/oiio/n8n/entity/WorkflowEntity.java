@@ -80,7 +80,7 @@ public class WorkflowEntity extends BaseTimeEntity {
     @Column(name = "pin_data", columnDefinition = "JSON")
     private Object pinData;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = true)
     private User owner;
 
