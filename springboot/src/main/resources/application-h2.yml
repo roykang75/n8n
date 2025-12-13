@@ -1,0 +1,70 @@
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+spring:
+  application:
+    name: n8n-backend
+
+  datasource:
+    url: jdbc:h2:mem:n8n;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password:
+    driver-class-name: org.h2.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+        use_sql_comments: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  flyway:
+    enabled: false  # Disable Flyway for H2 testing
+
+# Custom properties
+n8n:
+  security:
+    jwt:
+      secret: n8n-jwt-secret-key-change-this-in-production
+      expiration: 86400000 # 24 hours
+      refresh-token-expiration: 1209600000 # 14 days
+
+  execution:
+    max-concurrent-executions: 10
+    execution-timeout: 3600000 # 1 hour
+    retry-attempts: 3
+    retry-delay: 5000 # 5 seconds
+
+# Logging
+logging:
+  level:
+    xyz.oiio.n8n: DEBUG
+    org.springframework.security: DEBUG
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n"
+
+# Actuator endpoints
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: always

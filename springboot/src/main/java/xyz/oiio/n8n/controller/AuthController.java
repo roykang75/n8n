@@ -1,0 +1,186 @@
+package xyz.oiio.n8n.controller;
+
+import jakarta.validation.Valid;
+import java.util.List;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.*;
+import xyz.oiio.n8n.security.JwtTokenProvider;
+import xyz.oiio.n8n.service.user.UserService;
+
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Optional;
+
+@Slf4j
+@RestController
+@RequestMapping("/api/auth")
+@RequiredArgsConstructor
+public class AuthController {
+
+    private final AuthenticationManager authenticationManager;
+    private final UserService userService;
+    private final JwtTokenProvider tokenProvider;
+    private final PasswordEncoder passwordEncoder;
+
+    @PostMapping("/login")
+    public ResponseEntity<AuthResponse> authenticateUser(@Valid @RequestBody LoginRequest loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    loginRequest.getEmail(),
+                    loginRequest.getPassword()
+                )
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+
+            // Get user details
+            Optional<xyz.oiio.n8n.entity.User> userOpt = userService.findByEmail(loginRequest.getEmail());
+            Map<String, Object> userInfo = new HashMap<>();
+            userOpt.ifPresent(user -> {
+                userInfo.put("id", user.getId());
+                userInfo.put("email", user.getEmail());
+                userInfo.put("firstName", user.getFirstName());
+                userInfo.put("lastName", user.getLastName());
+                userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
+            });
+
+            return ResponseEntity.ok(new AuthResponse(true, "Authentication successful", jwt, userInfo));
+        } catch (Exception e) {
+            log.error("Authentication failed for user: {}", loginRequest.getEmail(), e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(false, "Invalid email or password", null, null));
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<AuthResponse> registerUser(@Valid @RequestBody RegisterRequest registerRequest) {
+        try {
+            // Check if user already exists
+            if (userService.findByEmail(registerRequest.getEmail()).isPresent()) {
+                return ResponseEntity.badRequest()
+                        .body(new AuthResponse(false, "Email is already registered", null, null));
+            }
+
+            // Create new user
+            xyz.oiio.n8n.entity.User newUser = xyz.oiio.n8n.entity.User.builder()
+                    .id(java.util.UUID.randomUUID().toString())
+                    .email(registerRequest.getEmail())
+                    .firstName(registerRequest.getFirstName())
+                    .lastName(registerRequest.getLastName())
+                    .password(passwordEncoder.encode(registerRequest.getPassword()))
+                    .disabled(false)
+                    .mfaEnabled(false)
+                    .role(xyz.oiio.n8n.entity.User.UserRole.USER)
+                    .build();
+
+            xyz.oiio.n8n.entity.User createdUser = userService.saveUser(newUser);
+
+            // Auto-login after registration
+            Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(
+                    registerRequest.getEmail(),
+                    registerRequest.getPassword()
+                )
+            );
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String jwt = tokenProvider.generateToken(authentication);
+
+            Map<String, Object> userInfo = new HashMap<>();
+            userInfo.put("id", createdUser.getId());
+            userInfo.put("email", createdUser.getEmail());
+            userInfo.put("firstName", createdUser.getFirstName());
+            userInfo.put("lastName", createdUser.getLastName());
+            userInfo.put("roles", List.of(createdUser.getRole().name().toLowerCase()));
+
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(new AuthResponse(true, "User registered successfully", jwt, userInfo));
+        } catch (Exception e) {
+            log.error("Registration failed for user: {}", registerRequest.getEmail(), e);
+            return ResponseEntity.badRequest()
+                    .body(new AuthResponse(false, "Registration failed: " + e.getMessage(), null, null));
+        }
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<AuthResponse> refreshToken(@RequestHeader("Authorization") String authorizationHeader) {
+        try {
+            if (authorizationHeader != null && authorizationHeader.startsWith("Bearer ")) {
+                String token = authorizationHeader.substring(7);
+
+                if (tokenProvider.validateToken(token)) {
+                    String email = tokenProvider.getUsernameFromToken(token);
+                    Optional<xyz.oiio.n8n.entity.User> userOpt = userService.findByEmail(email);
+
+                    if (userOpt.isPresent()) {
+                        // Create authentication for token generation
+                        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                            email, null, null
+                        );
+
+                        String newJwt = tokenProvider.generateToken(authentication);
+
+                        Map<String, Object> userInfo = new HashMap<>();
+                        xyz.oiio.n8n.entity.User user = userOpt.get();
+                        userInfo.put("id", user.getId());
+                        userInfo.put("email", user.getEmail());
+                        userInfo.put("firstName", user.getFirstName());
+                        userInfo.put("lastName", user.getLastName());
+                        userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
+
+                        return ResponseEntity.ok(new AuthResponse(true, "Token refreshed successfully", newJwt, userInfo));
+                    }
+                }
+            }
+
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(false, "Invalid or expired token", null, null));
+        } catch (Exception e) {
+            log.error("Token refresh failed", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse(false, "Token refresh failed", null, null));
+        }
+    }
+
+    // DTOs
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class LoginRequest {
+        private String email;
+        private String password;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class RegisterRequest {
+        private String email;
+        private String password;
+        private String firstName;
+        private String lastName;
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class AuthResponse {
+        private boolean success;
+        private String message;
+        private String token;
+        private Map<String, Object> user;
+    }
+}

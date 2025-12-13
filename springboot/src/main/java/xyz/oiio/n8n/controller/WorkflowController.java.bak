@@ -1,0 +1,194 @@
+package xyz.oiio.n8n.controller;
+
+import jakarta.validation.Valid;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import xyz.oiio.n8n.entity.User;
+import xyz.oiio.n8n.entity.WorkflowEntity;
+import xyz.oiio.n8n.service.workflow.WorkflowService;
+import xyz.oiio.n8n.service.user.UserService;
+
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
+
+@RestController
+@RequestMapping("/api/workflows")
+@RequiredArgsConstructor
+public class WorkflowController {
+
+    private final WorkflowService workflowService;
+    private final UserService userService;
+
+    @PostMapping
+    public ResponseEntity<WorkflowResponse> createWorkflow(
+            @Valid @RequestBody CreateWorkflowRequest request,
+            @RequestParam String userId) {
+        try {
+            // Get user from request param (temporary solution)
+            User currentUser = userService.getUserById(userId);
+            WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(), currentUser);
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(WorkflowResponse.from(createdWorkflow));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest()
+                    .body(WorkflowResponse.error(e.getMessage()));
+        }
+    }
+
+    @GetMapping("/{workflowId}")
+    public ResponseEntity<WorkflowResponse> getWorkflow(@PathVariable String workflowId) {
+        try {
+            WorkflowEntity workflow = workflowService.getWorkflowById(workflowId);
+            return ResponseEntity.ok(WorkflowResponse.from(workflow));
+        } catch (WorkflowService.NotFoundException e) {
+            return ResponseEntity.notFound().build();
+        }
+    }
+
+    @GetMapping
+    public ResponseEntity<WorkflowsResponse> getWorkflows(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            @RequestParam(defaultValue = "createdAt") String sortBy,
+            @RequestParam String userId) {
+
+        User currentUser = userService.getUserById(userId);
+        Pageable pageable = PageRequest.of(page, size, Sort.by(sortBy).descending());
+        Page<WorkflowEntity> workflows = workflowService.getWorkflowsByUser(currentUser, pageable);
+
+        return ResponseEntity.ok(WorkflowsResponse.from(workflows));
+    }
+
+    // Simple DTOs
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class CreateWorkflowRequest {
+        private String name;
+        private String description;
+        private List<Object> nodes;
+        private Object connections;
+        private WorkflowEntity.WorkflowSettings settings;
+        private Object staticData;
+        private WorkflowEntity.WorkflowMeta meta;
+        private Object pinData;
+        private Optional<String> projectId = Optional.empty();
+        private List<String> tagNames = List.of();
+
+        public WorkflowService.WorkflowRequest toServiceRequest() {
+            return new WorkflowService.WorkflowRequest(
+                name, description, nodes, connections, settings, staticData,
+                meta, pinData, projectId, tagNames
+            );
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WorkflowResponse {
+        private boolean success;
+        private String message;
+        private WorkflowDto workflow;
+
+        public static WorkflowResponse from(WorkflowEntity workflow) {
+            return new WorkflowResponse(true, "Success", new WorkflowDto(workflow));
+        }
+
+        public static WorkflowResponse error(String message) {
+            return new WorkflowResponse(false, message, null);
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WorkflowsResponse {
+        private boolean success;
+        private List<WorkflowDto> workflows;
+        private PageInfo pageInfo;
+
+        public static WorkflowsResponse from(Page<WorkflowEntity> workflows) {
+            return new WorkflowsResponse(
+                true,
+                workflows.getContent().stream().map(WorkflowDto::new).collect(Collectors.toList()),
+                new PageInfo(workflows)
+            );
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class WorkflowDto {
+        private String id;
+        private String name;
+        private String description;
+        private Boolean active;
+        private Boolean isArchived;
+        private Object nodes;
+        private Object connections;
+        private WorkflowEntity.WorkflowSettings settings;
+        private String versionId;
+        private Integer versionCounter;
+        private Integer triggerCount;
+        private List<String> tagNames;
+        private String projectId;
+        private String ownerName;
+        private String createdAt;
+        private String updatedAt;
+
+        public WorkflowDto(WorkflowEntity workflow) {
+            this.id = workflow.getId();
+            this.name = workflow.getName();
+            this.description = workflow.getDescription();
+            this.active = workflow.getActive();
+            this.isArchived = workflow.getIsArchived();
+            this.nodes = workflow.getNodes();
+            this.connections = workflow.getConnections();
+            this.settings = workflow.getSettings();
+            this.versionId = workflow.getVersionId();
+            this.versionCounter = workflow.getVersionCounter();
+            this.triggerCount = workflow.getTriggerCount();
+            this.tagNames = workflow.getTags() != null ?
+                workflow.getTags().stream().map(tag -> tag.getName()).collect(Collectors.toList()) :
+                List.of();
+            this.projectId = workflow.getProject() != null ? workflow.getProject().getId().toString() : null;
+            this.ownerName = workflow.getOwner() != null ?
+                workflow.getOwner().getFirstName() + " " + workflow.getOwner().getLastName() : null;
+            this.createdAt = workflow.getCreatedAt().toString();
+            this.updatedAt = workflow.getUpdatedAt().toString();
+        }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    public static class PageInfo {
+        private int currentPage;
+        private int pageSize;
+        private long totalElements;
+        private int totalPages;
+        private boolean first;
+        private boolean last;
+
+        public PageInfo(Page<?> page) {
+            this.currentPage = page.getNumber();
+            this.pageSize = page.getSize();
+            this.totalElements = page.getTotalElements();
+            this.totalPages = page.getTotalPages();
+            this.first = page.isFirst();
+            this.last = page.isLast();
+        }
+    }
+}
