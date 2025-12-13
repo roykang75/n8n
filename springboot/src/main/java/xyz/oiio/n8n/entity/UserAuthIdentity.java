@@ -19,12 +19,11 @@ import org.hibernate.type.SqlTypes;
 @Table(name = "user_auth_identities")
 public class UserAuthIdentity extends BaseTimeEntity {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @EmbeddedId
+    private UserAuthIdentityId id;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", referencedColumnName = "id")
+    @JoinColumn(name = "user_id", referencedColumnName = "id", insertable = false, updatable = false)
     private User user;
 
     @Column(name = "provider_type", nullable = false)
@@ -40,4 +39,16 @@ public class UserAuthIdentity extends BaseTimeEntity {
     @Column(name = "verified", nullable = false)
     @Builder.Default
     private Boolean verified = false;
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @Embeddable
+    public static class UserAuthIdentityId implements java.io.Serializable {
+        @Column(name = "user_id")
+        private String userId;
+
+        @Column(name = "id")
+        private String id;
+    }
 }
