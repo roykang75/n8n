@@ -59,7 +59,7 @@ public class CredentialsEntity extends BaseTimeEntity {
     private Long projectId;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = true)
     @JsonIgnore
     private User owner;
 

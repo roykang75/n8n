@@ -81,7 +81,7 @@ public class WorkflowEntity extends BaseTimeEntity {
     private Object pinData;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner_id", referencedColumnName = "id")
+    @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = true)
     private User owner;
 
     @Column(name = "project_id", columnDefinition = "BIGINT")
