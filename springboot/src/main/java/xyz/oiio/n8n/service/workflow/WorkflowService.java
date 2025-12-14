@@ -9,7 +9,6 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import xyz.oiio.n8n.entity.Project;
 import xyz.oiio.n8n.entity.TagEntity;
 import xyz.oiio.n8n.entity.User;
 import xyz.oiio.n8n.entity.WorkflowEntity;
@@ -57,8 +56,8 @@ public class WorkflowService {
                 .pinData(request.getPinData())
                 .owner(owner)
                 .projectId(request.getProjectId().filter(id -> id.matches("\\d+"))
-                    .map(Long::parseLong)
-                    .orElse(null))
+                        .map(Long::parseLong)
+                        .orElse(null))
                 .tags(getTagsFromNames(request.getTagNames()))
                 .build();
 
@@ -69,60 +68,59 @@ public class WorkflowService {
 
     @Transactional
     public WorkflowEntity updateWorkflow(String workflowId, WorkflowRequest request) {
-        WorkflowEntity workflow = getWorkflowById(workflowId);
+        // First verify workflow exists (read-only check)
+        WorkflowEntity existingWorkflow = getWorkflowById(workflowId);
 
-        if (!workflow.getName().equals(request.getName()) &&
-            workflowRepository.existsByNameAndOwner(request.getName(), workflow.getOwner())) {
+        if (!existingWorkflow.getName().equals(request.getName()) &&
+                workflowRepository.existsByNameAndOwner(request.getName(), existingWorkflow.getOwner())) {
             throw new IllegalArgumentException("Workflow name already exists: " + request.getName());
         }
 
-        workflow.setName(request.getName());
-        workflow.setDescription(request.getDescription());
-        workflow.setNodes(request.getNodes());
-        workflow.setConnections(request.getConnections());
-        workflow.setSettings(request.getSettings());
-        workflow.setStaticData(request.getStaticData());
-        workflow.setMeta(request.getMeta());
-        workflow.setPinData(request.getPinData());
-        workflow.setVersionCounter(workflow.getVersionCounter() + 1);
-        workflow.setVersionId(UUID.randomUUID().toString());
+        String newVersionId = UUID.randomUUID().toString();
+        LocalDateTime now = LocalDateTime.now();
 
-        workflow.setProjectId(request.getProjectId().filter(id -> id.matches("\\d+"))
-            .map(Long::parseLong)
-            .orElse(workflow.getProjectId()));
+        // Use direct UPDATE query to avoid StaleObjectStateException
+        // This is the same pattern as TypeORM's repository.update(id, payload)
+        workflowRepository.updateWorkflowFields(
+                workflowId,
+                request.getName(),
+                request.getDescription(),
+                request.getNodes(),
+                request.getConnections(),
+                request.getSettings(),
+                request.getStaticData(),
+                request.getMeta(),
+                request.getPinData(),
+                newVersionId,
+                now);
 
-        // Update tags
-        workflow.setTags(getTagsFromNames(request.getTagNames()));
+        log.info("Updated workflow with id: {}", workflowId);
 
-        WorkflowEntity savedWorkflow = workflowRepository.save(workflow);
-        log.info("Updated workflow with id: {}", savedWorkflow.getId());
-        return savedWorkflow;
+        // Return the updated workflow
+        return getWorkflowById(workflowId);
     }
 
     @Transactional
     public void deleteWorkflow(String workflowId) {
-        WorkflowEntity workflow = getWorkflowById(workflowId);
-        workflow.setIsArchived(true);
-        workflowRepository.save(workflow);
+        // Use direct UPDATE to avoid concurrent modification issues
+        workflowRepository.updateArchivedStatus(workflowId, true, LocalDateTime.now());
         log.info("Archived workflow with id: {}", workflowId);
     }
 
     @Transactional
     public WorkflowEntity activateWorkflow(String workflowId) {
-        WorkflowEntity workflow = getWorkflowById(workflowId);
-        workflow.setActive(true);
-        workflowRepository.save(workflow);
+        // Use direct UPDATE to avoid concurrent modification issues
+        workflowRepository.updateActiveStatus(workflowId, true, LocalDateTime.now());
         log.info("Activated workflow with id: {}", workflowId);
-        return workflow;
+        return getWorkflowById(workflowId);
     }
 
     @Transactional
     public WorkflowEntity deactivateWorkflow(String workflowId) {
-        WorkflowEntity workflow = getWorkflowById(workflowId);
-        workflow.setActive(false);
-        workflowRepository.save(workflow);
+        // Use direct UPDATE to avoid concurrent modification issues
+        workflowRepository.updateActiveStatus(workflowId, false, LocalDateTime.now());
         log.info("Deactivated workflow with id: {}", workflowId);
-        return workflow;
+        return getWorkflowById(workflowId);
     }
 
     @Transactional(readOnly = true)
@@ -161,9 +159,9 @@ public class WorkflowService {
 
     @Transactional
     public WorkflowEntity incrementTriggerCount(String workflowId) {
-        WorkflowEntity workflow = getWorkflowById(workflowId);
-        workflow.setTriggerCount(workflow.getTriggerCount() + 1);
-        return workflowRepository.save(workflow);
+        // Use direct UPDATE to avoid concurrent modification issues
+        workflowRepository.incrementTriggerCount(workflowId);
+        return getWorkflowById(workflowId);
     }
 
     private List<TagEntity> getTagsFromNames(List<String> tagNames) {
