@@ -78,3 +78,30 @@ tasks.named('test') {
     useJUnitPlatform()
     systemProperty 'testcontainers.reuse.enable', 'true'
 }
+
+// --- Node Type Generation & Sync Tasks ---
+
+task generateNodeTypes(type: Exec) {
+    // Run pnpm run generate:types in packages/cli
+    workingDir '../packages/cli'
+    
+    // Check if pnpm is available in env, otherwise fail
+    commandLine 'pnpm', 'run', 'generate:types'
+    
+    // Ensure generation errors break the build
+    ignoreExitValue = false
+}
+
+task copyNodeTypes(type: Copy) {
+    dependsOn generateNodeTypes
+    // Copy generated json files to Spring Boot resources
+    from '../packages/cli/nodes.json', '../packages/cli/credentials.json'
+    into 'src/main/resources/static/types/'
+    
+    doLast {
+        println "Copied nodes.json and credentials.json to src/main/resources/static/types/"
+    }
+}
+
+// Hook into processResources so it runs before build/bootRun
+processResources.dependsOn copyNodeTypes

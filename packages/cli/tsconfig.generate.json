@@ -1,0 +1,37 @@
+{
+	"compilerOptions": {
+		"module": "commonjs",
+		"target": "es2019",
+		"sourceMap": true,
+		"baseUrl": ".",
+		"paths": {
+			"@/*": ["src/*"],
+			"n8n-core": ["packages/core/src"],
+			"n8n-workflow": ["packages/workflow/src"],
+			"n8n-nodes-base": ["packages/nodes-base"],
+			"n8n-nodes-base/*": ["packages/nodes-base/*"],
+			"@n8n/config": ["packages/@n8n/config/src"],
+			"@n8n/backend-common": ["packages/@n8n/backend-common/src"],
+			"@n8n/di": ["packages/@n8n/di/src"],
+			"@n8n/constants": ["packages/@n8n/constants/src"],
+			"@n8n/utils": ["packages/@n8n/utils/src"],
+			"@n8n/errors": ["packages/@n8n/errors/src"],
+			"@n8n/decorators": ["packages/@n8n/decorators/src"],
+			"@n8n/client-oauth2": ["packages/@n8n/client-oauth2/src"],
+			"@n8n/n8n-nodes-langchain": ["packages/@n8n/nodes-langchain/src"],
+			"@n8n/nodes-langchain": ["packages/@n8n/nodes-langchain/src"],
+			"@n8n/api-types": ["packages/@n8n/api-types/src"],
+			"@n8n/task-runner": ["packages/@n8n/task-runner/src"],
+			"@n8n/permissions": ["packages/@n8n/permissions/src"],
+			"@n8n/db": ["packages/@n8n/db/src"],
+			"@n8n/backend-test-utils": ["packages/@n8n/backend-test-utils/src"],
+			"@n8n/*": ["packages/@n8n/*/src"]
+		},
+		"emitDecoratorMetadata": true,
+		"experimentalDecorators": true,
+		"esModuleInterop": true,
+		"skipLibCheck": true,
+		"resolveJsonModule": true
+	},
+	"include": ["scripts/generate-node-types.ts", "src/**/*.ts"]
+}

@@ -73,6 +73,7 @@ public class SecurityConfig {
                         .permitAll()
                         .requestMatchers("/static/**").permitAll()
                         .requestMatchers("/types/**").permitAll()
+                        .requestMatchers("/icons/**").permitAll() // Icon proxy for Node.js packages
                         .requestMatchers("/rest/health").permitAll()
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/rest/public/**").permitAll()

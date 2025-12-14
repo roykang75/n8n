@@ -221,6 +221,10 @@ export default mergeConfig(
 					target: 'http://localhost:5678',
 					changeOrigin: true,
 				},
+				'/icons': {
+					target: 'http://localhost:5678',
+					changeOrigin: true,
+				},
 			},
 		},
 		css: {
