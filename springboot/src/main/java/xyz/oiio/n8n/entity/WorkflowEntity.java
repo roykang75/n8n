@@ -1,6 +1,7 @@
 package xyz.oiio.n8n.entity;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -13,6 +14,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.util.List;
+import java.util.Map;
 
 @Data
 @SuperBuilder
@@ -28,6 +30,11 @@ public class WorkflowEntity extends BaseTimeEntity {
     @Column(name = "id", columnDefinition = "VARCHAR(21) NOT NULL")
     private String id;
 
+    @Version
+    @Column(name = "entity_version")
+    @lombok.Builder.Default
+    private Long entityVersion = 0L;
+
     @Size(max = 128)
     @Column(name = "name", nullable = false)
     private String name;
@@ -36,18 +43,20 @@ public class WorkflowEntity extends BaseTimeEntity {
     private String description;
 
     @Column(name = "active")
+    @lombok.Builder.Default
     private Boolean active = false;
 
     @Column(name = "is_archived")
+    @lombok.Builder.Default
     private Boolean isArchived = false;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "nodes", columnDefinition = "JSON")
-    private List<Object> nodes;
+    private List<Map<String, Object>> nodes;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "connections", columnDefinition = "JSON")
-    private Object connections;
+    private Map<String, Object> connections;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "settings", columnDefinition = "JSON")
@@ -55,7 +64,7 @@ public class WorkflowEntity extends BaseTimeEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "static_data", columnDefinition = "JSON")
-    private Object staticData;
+    private Map<String, Object> staticData;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "meta", columnDefinition = "JSON")
@@ -78,7 +87,7 @@ public class WorkflowEntity extends BaseTimeEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "pin_data", columnDefinition = "JSON")
-    private Object pinData;
+    private Map<String, Object> pinData;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = true)
     @JoinColumn(name = "owner_id", referencedColumnName = "id", nullable = true)
@@ -92,11 +101,7 @@ public class WorkflowEntity extends BaseTimeEntity {
     private Project project;
 
     @ManyToMany
-    @JoinTable(
-        name = "workflow_tags",
-        joinColumns = @JoinColumn(name = "workflow_id"),
-        inverseJoinColumns = @JoinColumn(name = "tag_id")
-    )
+    @JoinTable(name = "workflow_tags", joinColumns = @JoinColumn(name = "workflow_id"), inverseJoinColumns = @JoinColumn(name = "tag_id"))
     private List<TagEntity> tags;
 
     @OneToMany(mappedBy = "workflow", cascade = CascadeType.ALL)
@@ -106,6 +111,7 @@ public class WorkflowEntity extends BaseTimeEntity {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class WorkflowSettings {
         private Boolean saveManualExecutions = true;
         private Boolean saveErrorWorkflow = true;
@@ -118,6 +124,7 @@ public class WorkflowEntity extends BaseTimeEntity {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class WorkflowMeta {
         private String templateId;
         private String templateCreds;

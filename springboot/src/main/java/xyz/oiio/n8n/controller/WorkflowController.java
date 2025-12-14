@@ -1,6 +1,9 @@
 package xyz.oiio.n8n.controller;
 
 import jakarta.validation.Valid;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -36,27 +39,18 @@ public class WorkflowController {
 
     @PostMapping
     public ResponseEntity<Map<String, Object>> createWorkflow(
-            @RequestBody Map<String, Object> request,
+            @Valid @RequestBody CreateWorkflowRequest request,
             Authentication authentication) {
         try {
-            log.info("POST /workflows - request keys: {}", request.keySet());
+            if (authentication == null || authentication.getName() == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(Map.of("data", Map.of(), "message", "Authentication required"));
+            }
 
-            // 현재 인증된 사용자 가져오기
             xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
-
-            // Build CreateWorkflowRequest from map
-            CreateWorkflowRequest createRequest = new CreateWorkflowRequest();
-            createRequest.setName((String) request.getOrDefault("name", "New Workflow"));
-            createRequest.setDescription((String) request.get("description"));
-            createRequest.setNodes((List<Object>) request.get("nodes"));
-            createRequest.setConnections(request.get("connections"));
-            createRequest.setStaticData(request.get("staticData"));
-            createRequest.setPinData(request.get("pinData"));
-
-            WorkflowEntity createdWorkflow = workflowService.createWorkflow(createRequest.toServiceRequest(),
+            WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(),
                     currentUser);
 
-            // Return in { data: {...} } format for frontend compatibility
             Map<String, Object> workflowData = workflowToMap(createdWorkflow);
             return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("data", workflowData));
         } catch (Exception e) {
@@ -131,6 +125,8 @@ public class WorkflowController {
 
     @GetMapping("/new")
     public ResponseEntity<Map<String, String>> getNewWorkflowName() {
+        System.out.println("CHECK SERVER VERSION: 3 (System.out)");
+        log.info("CHECK SERVER VERSION: 3");
         // Generate default workflow name
         return ResponseEntity.ok(Map.of("name", "My workflow"));
     }
@@ -263,44 +259,88 @@ public class WorkflowController {
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class CreateWorkflowRequest {
         private String name;
         private String description;
-        private List<Object> nodes;
-        private Object connections;
-        private WorkflowEntity.WorkflowSettings settings;
-        private Object staticData;
-        private WorkflowEntity.WorkflowMeta meta;
-        private Object pinData;
-        private Optional<String> projectId = Optional.empty();
-        private List<String> tagNames = List.of();
+        private List<Map<String, Object>> nodes;
+        private Map<String, Object> connections;
+        private Object settings;
+        private Map<String, Object> staticData;
+        private Object meta;
+        private Map<String, Object> pinData;
+        private String projectId;
+
+        @JsonProperty("tags")
+        private List<Object> tags = List.of();
 
         public WorkflowService.WorkflowRequest toServiceRequest() {
+            List<String> tagNamesList = tags.stream()
+                    .map(t -> {
+                        if (t instanceof Map) {
+                            return (String) ((Map<?, ?>) t).get("name");
+                        }
+                        return t.toString();
+                    })
+                    .collect(Collectors.toList());
+
+            // ObjectMapper로 settings와 meta를 올바른 타입으로 변환
+            ObjectMapper mapper = new ObjectMapper();
+            WorkflowEntity.WorkflowSettings settingsObj = settings != null
+                    ? mapper.convertValue(settings, WorkflowEntity.WorkflowSettings.class)
+                    : new WorkflowEntity.WorkflowSettings();
+
+            WorkflowEntity.WorkflowMeta metaObj = meta != null
+                    ? mapper.convertValue(meta, WorkflowEntity.WorkflowMeta.class)
+                    : new WorkflowEntity.WorkflowMeta();
+
             return new WorkflowService.WorkflowRequest(
-                    name, description, nodes, connections, settings, staticData,
-                    meta, pinData, projectId, tagNames);
+                    name, description, nodes, connections, settingsObj, staticData,
+                    metaObj, pinData, Optional.ofNullable(projectId), tagNamesList);
         }
     }
 
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
     public static class UpdateWorkflowRequest {
         private String name;
         private String description;
-        private List<Object> nodes;
-        private Object connections;
-        private WorkflowEntity.WorkflowSettings settings;
-        private Object staticData;
-        private WorkflowEntity.WorkflowMeta meta;
-        private Object pinData;
-        private Optional<String> projectId = Optional.empty();
-        private List<String> tagNames = List.of();
+        private List<Map<String, Object>> nodes;
+        private Map<String, Object> connections;
+        private Object settings;
+        private Map<String, Object> staticData;
+        private Object meta;
+        private Map<String, Object> pinData;
+        private String projectId;
+
+        @JsonProperty("tags")
+        private List<Object> tags = List.of();
 
         public WorkflowService.WorkflowRequest toServiceRequest() {
+            List<String> tagNamesList = tags.stream()
+                    .map(t -> {
+                        if (t instanceof Map) {
+                            return (String) ((Map<?, ?>) t).get("name");
+                        }
+                        return t.toString();
+                    })
+                    .collect(Collectors.toList());
+
+            // ObjectMapper로 settings와 meta를 올바른 타입으로 변환
+            ObjectMapper mapper = new ObjectMapper();
+            WorkflowEntity.WorkflowSettings settingsObj = settings != null
+                    ? mapper.convertValue(settings, WorkflowEntity.WorkflowSettings.class)
+                    : new WorkflowEntity.WorkflowSettings();
+
+            WorkflowEntity.WorkflowMeta metaObj = meta != null
+                    ? mapper.convertValue(meta, WorkflowEntity.WorkflowMeta.class)
+                    : new WorkflowEntity.WorkflowMeta();
+
             return new WorkflowService.WorkflowRequest(
-                    name, description, nodes, connections, settings, staticData,
-                    meta, pinData, projectId, tagNames);
+                    name, description, nodes, connections, settingsObj, staticData,
+                    metaObj, pinData, Optional.ofNullable(projectId), tagNamesList);
         }
     }
 
@@ -334,8 +374,8 @@ public class WorkflowController {
         private String description;
         private Boolean active;
         private Boolean isArchived;
-        private Object nodes;
-        private Object connections;
+        private List<Map<String, Object>> nodes;
+        private Map<String, Object> connections;
         private WorkflowEntity.WorkflowSettings settings;
         private String versionId;
         private Integer versionCounter;

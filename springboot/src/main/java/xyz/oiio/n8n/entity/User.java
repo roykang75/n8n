@@ -81,7 +81,6 @@ public class User extends BaseTimeEntity {
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CredentialsEntity> credentials;
 
-    
     public enum UserRole {
         ADMIN,
         USER,
@@ -97,5 +96,6 @@ public class User extends BaseTimeEntity {
         private Integer itemsPerPage;
         private Boolean autoSave;
         private Boolean receiveEmailUpdates;
+        private Boolean easyAIWorkflowOnboarded;
     }
 }

@@ -41,13 +41,16 @@ public class AuthController {
         log.info("=== Login request received ===");
         log.info("Email: {}", loginRequest.getEmail());
         try {
+            log.info("Attempting authentication for: {}", loginRequest.getEmail());
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
                             loginRequest.getEmail(),
                             loginRequest.getPassword()));
+            log.info("Authentication successful for: {}", loginRequest.getEmail());
 
             SecurityContextHolder.getContext().setAuthentication(authentication);
             String jwt = tokenProvider.generateToken(authentication);
+            log.info("JWT generated successfully");
 
             // Set cookie
             addAuthCookie(response, jwt);
@@ -65,8 +68,11 @@ public class AuthController {
 
             return ResponseEntity.ok(Map.of("data", userInfo));
         } catch (Exception e) {
-            log.error("Authentication failed for user: {}", loginRequest.getEmail(), e);
-            throw new RuntimeException("Invalid email or password");
+            log.error("Authentication failed for user: {} - Exception type: {} - Message: {}",
+                    loginRequest.getEmail(), e.getClass().getName(), e.getMessage());
+            log.error("Full stack trace:", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Invalid email or password", "details", e.getMessage()));
         }
     }
 
