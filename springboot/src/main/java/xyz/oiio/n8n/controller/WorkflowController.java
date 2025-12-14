@@ -6,6 +6,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -24,6 +25,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+@Slf4j
 @RestController
 @RequestMapping("/rest/workflows")
 @RequiredArgsConstructor
@@ -33,19 +35,34 @@ public class WorkflowController {
     private final UserService userService;
 
     @PostMapping
-    public ResponseEntity<WorkflowResponse> createWorkflow(
-            @Valid @RequestBody CreateWorkflowRequest request,
+    public ResponseEntity<Map<String, Object>> createWorkflow(
+            @RequestBody Map<String, Object> request,
             Authentication authentication) {
         try {
+            log.info("POST /workflows - request keys: {}", request.keySet());
+
             // 현재 인증된 사용자 가져오기
             xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
-            WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(), currentUser);
-            return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(new WorkflowResponse(true, "Workflow created successfully",
-                            new WorkflowDto(createdWorkflow)));
+
+            // Build CreateWorkflowRequest from map
+            CreateWorkflowRequest createRequest = new CreateWorkflowRequest();
+            createRequest.setName((String) request.getOrDefault("name", "New Workflow"));
+            createRequest.setDescription((String) request.get("description"));
+            createRequest.setNodes((List<Object>) request.get("nodes"));
+            createRequest.setConnections(request.get("connections"));
+            createRequest.setStaticData(request.get("staticData"));
+            createRequest.setPinData(request.get("pinData"));
+
+            WorkflowEntity createdWorkflow = workflowService.createWorkflow(createRequest.toServiceRequest(),
+                    currentUser);
+
+            // Return in { data: {...} } format for frontend compatibility
+            Map<String, Object> workflowData = workflowToMap(createdWorkflow);
+            return ResponseEntity.status(HttpStatus.CREATED).body(Map.of("data", workflowData));
         } catch (Exception e) {
+            log.error("Error creating workflow: ", e);
             return ResponseEntity.badRequest()
-                    .body(new WorkflowResponse(false, e.getMessage(), null));
+                    .body(Map.of("data", Map.of(), "message", e.getMessage()));
         }
     }
 
