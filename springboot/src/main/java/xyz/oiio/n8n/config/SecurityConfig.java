@@ -23,6 +23,8 @@ import xyz.oiio.n8n.security.CustomUserDetailsService;
 import xyz.oiio.n8n.security.JwtAuthenticationEntryPoint;
 import xyz.oiio.n8n.security.JwtAuthenticationFilter;
 
+import org.springframework.security.web.header.HeaderWriterFilter;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -64,7 +66,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(authz -> authz
                         // 공개 엔드포인트
                         .requestMatchers("/rest/login", "/rest/register", "/rest/owner/setup", "/rest/refresh",
-                                "/rest/forgot-password",
+                                "/rest/logout", "/rest/forgot-password",
                                 "/rest/resolve-signup-token", "/rest/settings",
                                 "/rest/projects/**", "/rest/roles", "/rest/module-settings",
                                 "/rest/workflows", "/rest/active-workflows", "/rest/license")
@@ -131,7 +133,10 @@ public class SecurityConfig {
 @Profile({ "no-auth", "test" })
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 class NoAuthSecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthenticationFilter;
 
     @Bean
     public PasswordEncoder passwordEncoder() {

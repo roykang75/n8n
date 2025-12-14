@@ -1,5 +1,6 @@
 package xyz.oiio.n8n.controller;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
 import jakarta.servlet.http.HttpServletResponse;
 import java.util.List;
@@ -37,6 +38,8 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest,
             HttpServletResponse response) {
+        log.info("=== Login request received ===");
+        log.info("Email: {}", loginRequest.getEmail());
         try {
             Authentication authentication = authenticationManager.authenticate(
                     new UsernamePasswordAuthenticationToken(
@@ -222,11 +225,29 @@ public class AuthController {
         }
     }
 
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, Object>> logout(HttpServletResponse response) {
+        log.info("=== Logout request received ===");
+
+        // Clear the n8n-auth cookie
+        jakarta.servlet.http.Cookie cookie = new jakarta.servlet.http.Cookie("n8n-auth", "");
+        cookie.setHttpOnly(true);
+        cookie.setPath("/");
+        cookie.setMaxAge(0); // Expire immediately
+        response.addCookie(cookie);
+
+        // Clear security context
+        SecurityContextHolder.clearContext();
+
+        return ResponseEntity.ok(Map.of("status", "ok"));
+    }
+
     // DTOs
     @Data
     @AllArgsConstructor
     @NoArgsConstructor
     public static class LoginRequest {
+        @JsonProperty("emailOrLdapLoginId")
         private String email;
         private String password;
     }
