@@ -36,7 +36,17 @@ public class ProjectsController {
                 "workflow:read",
                 "workflow:update",
                 "workflow:delete",
-                "workflow:execute"));
+                "workflow:execute",
+                "workflow:move",
+                "workflow:share",
+                "credential:create",
+                "credential:read",
+                "credential:update",
+                "credential:delete",
+                "credential:move",
+                "credential:share",
+                "project:read",
+                "project:update"));
         return ResponseEntity.ok(Map.of("data", project));
     }
 
