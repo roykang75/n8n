@@ -103,7 +103,7 @@
                 "typeOptions": {
                     "editor": "jsEditor"
                 },
-                "default": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+                "default": "return $input.all();"
             }
         ]
     },
@@ -146,14 +146,6 @@
                     {
                         "name": "DELETE",
                         "value": "DELETE"
-                    },
-                    {
-                        "name": "PATCH",
-                        "value": "PATCH"
-                    },
-                    {
-                        "name": "HEAD",
-                        "value": "HEAD"
                     }
                 ],
                 "default": "GET"
@@ -184,14 +176,7 @@
         "outputs": [
             "main"
         ],
-        "properties": [
-            {
-                "displayName": "Trigger Times",
-                "name": "triggerTimes",
-                "type": "fixedCollection",
-                "default": {}
-            }
-        ]
+        "properties": []
     },
     {
         "displayName": "No Operation",
@@ -207,6 +192,985 @@
         },
         "inputs": [
             "main"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "AI Agent",
+        "name": "@n8n/n8n-nodes-langchain.agent",
+        "icon": "fa:robot",
+        "iconColor": "black",
+        "group": [
+            "transform"
+        ],
+        "description": "Generates an action plan and executes it. Can use external tools.",
+        "version": 3.1,
+        "defaults": {
+            "name": "AI Agent"
+        },
+        "codex": {
+            "alias": [
+                "LangChain",
+                "Chat",
+                "Conversational",
+                "Plan and Execute",
+                "ReAct",
+                "Tools"
+            ],
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Agents",
+                    "Root Nodes"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel",
+            "ai_memory",
+            "ai_tool"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Prompt",
+                "name": "text",
+                "type": "string",
+                "default": "",
+                "placeholder": "e.g. What is the weather today?"
+            }
+        ]
+    },
+    {
+        "displayName": "OpenAI Chat Model",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+        "icon": "fa:brain",
+        "group": [
+            "transform"
+        ],
+        "description": "For advanced usage with an AI chain",
+        "version": 1.3,
+        "defaults": {
+            "name": "OpenAI Chat Model"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Language Models",
+                    "Root Nodes"
+                ],
+                "Language Models": [
+                    "Chat Models (Recommended)"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_languageModel"
+        ],
+        "outputNames": [
+            "Model"
+        ],
+        "credentials": [
+            {
+                "name": "openAiApi",
+                "required": true
+            }
+        ],
+        "properties": [
+            {
+                "displayName": "Model",
+                "name": "model",
+                "type": "string",
+                "default": "gpt-4o-mini"
+            }
+        ]
+    },
+    {
+        "displayName": "Anthropic Chat Model",
+        "name": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+        "icon": "fa:brain",
+        "group": [
+            "transform"
+        ],
+        "description": "For advanced usage with an AI chain using Anthropic Claude",
+        "version": 1,
+        "defaults": {
+            "name": "Anthropic Chat Model"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Language Models"
+                ],
+                "Language Models": [
+                    "Chat Models (Recommended)"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_languageModel"
+        ],
+        "outputNames": [
+            "Model"
+        ],
+        "credentials": [
+            {
+                "name": "anthropicApi",
+                "required": true
+            }
+        ],
+        "properties": [
+            {
+                "displayName": "Model",
+                "name": "model",
+                "type": "string",
+                "default": "claude-3-5-sonnet-20241022"
+            }
+        ]
+    },
+    {
+        "displayName": "Google Gemini Chat Model",
+        "name": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+        "icon": "fa:brain",
+        "group": [
+            "transform"
+        ],
+        "description": "For advanced usage with an AI chain using Google Gemini",
+        "version": 1,
+        "defaults": {
+            "name": "Google Gemini Chat Model"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Language Models"
+                ],
+                "Language Models": [
+                    "Chat Models (Recommended)"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_languageModel"
+        ],
+        "outputNames": [
+            "Model"
+        ],
+        "credentials": [
+            {
+                "name": "googlePalmApi",
+                "required": true
+            }
+        ],
+        "properties": [
+            {
+                "displayName": "Model",
+                "name": "model",
+                "type": "string",
+                "default": "gemini-1.5-flash"
+            }
+        ]
+    },
+    {
+        "displayName": "Ollama Chat Model",
+        "name": "@n8n/n8n-nodes-langchain.lmChatOllama",
+        "icon": "fa:brain",
+        "group": [
+            "transform"
+        ],
+        "description": "For usage with local Ollama models",
+        "version": 1,
+        "defaults": {
+            "name": "Ollama Chat Model"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Language Models"
+                ],
+                "Language Models": [
+                    "Chat Models (Recommended)"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_languageModel"
+        ],
+        "outputNames": [
+            "Model"
+        ],
+        "credentials": [
+            {
+                "name": "ollamaApi",
+                "required": true
+            }
+        ],
+        "properties": [
+            {
+                "displayName": "Model",
+                "name": "model",
+                "type": "string",
+                "default": "llama3"
+            }
+        ]
+    },
+    {
+        "displayName": "Basic LLM Chain",
+        "name": "@n8n/n8n-nodes-langchain.chainLlm",
+        "icon": "fa:link",
+        "group": [
+            "transform"
+        ],
+        "description": "A simple LLM chain to generate content based on a prompt",
+        "version": 1,
+        "defaults": {
+            "name": "Basic LLM Chain"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains",
+                    "Root Nodes"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Prompt",
+                "name": "prompt",
+                "type": "string",
+                "default": ""
+            }
+        ]
+    },
+    {
+        "displayName": "Summarization Chain",
+        "name": "@n8n/n8n-nodes-langchain.chainSummarization",
+        "icon": "fa:link",
+        "group": [
+            "transform"
+        ],
+        "description": "Summarize long content using an LLM",
+        "version": 1,
+        "defaults": {
+            "name": "Summarization Chain"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Memory Buffer Window",
+        "name": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+        "icon": "fa:database",
+        "group": [
+            "transform"
+        ],
+        "description": "Stores chat history in memory",
+        "version": 1,
+        "defaults": {
+            "name": "Window Buffer Memory"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Memory"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_memory"
+        ],
+        "outputNames": [
+            "Memory"
+        ],
+        "properties": [
+            {
+                "displayName": "Session ID",
+                "name": "sessionIdType",
+                "type": "options",
+                "options": [
+                    {
+                        "name": "From Input",
+                        "value": "fromInput"
+                    },
+                    {
+                        "name": "Define Below",
+                        "value": "customKey"
+                    }
+                ],
+                "default": "fromInput"
+            }
+        ]
+    },
+    {
+        "displayName": "Chat Trigger",
+        "name": "@n8n/n8n-nodes-langchain.chatTrigger",
+        "icon": "fa:comments",
+        "group": [
+            "trigger"
+        ],
+        "description": "Start a workflow when an n8n Chat is triggered",
+        "version": 1,
+        "defaults": {
+            "name": "When chat message received"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Root Nodes"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "main"
+        ],
+        "webhooks": [
+            {
+                "name": "default",
+                "httpMethod": "POST",
+                "path": "chat",
+                "responseMode": "responseNode"
+            }
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Calculator Tool",
+        "name": "@n8n/n8n-nodes-langchain.toolCalculator",
+        "icon": "fa:calculator",
+        "group": [
+            "transform"
+        ],
+        "description": "Perform calculations",
+        "version": 1,
+        "defaults": {
+            "name": "Calculator"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Tools"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_tool"
+        ],
+        "outputNames": [
+            "Tool"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Wikipedia Tool",
+        "name": "@n8n/n8n-nodes-langchain.toolWikipedia",
+        "icon": "fa:book",
+        "group": [
+            "transform"
+        ],
+        "description": "Search Wikipedia",
+        "version": 1,
+        "defaults": {
+            "name": "Wikipedia"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Tools"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_tool"
+        ],
+        "outputNames": [
+            "Tool"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Workflow Tool",
+        "name": "@n8n/n8n-nodes-langchain.toolWorkflow",
+        "icon": "fa:project-diagram",
+        "group": [
+            "transform"
+        ],
+        "description": "Uses another workflow as a tool",
+        "version": 1,
+        "defaults": {
+            "name": "Call n8n Workflow Tool"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Tools"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_tool"
+        ],
+        "outputNames": [
+            "Tool"
+        ],
+        "properties": [
+            {
+                "displayName": "Name",
+                "name": "name",
+                "type": "string",
+                "default": "",
+                "placeholder": "e.g. My Tool"
+            },
+            {
+                "displayName": "Description",
+                "name": "description",
+                "type": "string",
+                "default": ""
+            }
+        ]
+    },
+    {
+        "displayName": "Code Tool",
+        "name": "@n8n/n8n-nodes-langchain.toolCode",
+        "icon": "fa:code",
+        "group": [
+            "transform"
+        ],
+        "description": "Custom tool written in JavaScript",
+        "version": 1,
+        "defaults": {
+            "name": "Custom n8n Workflow Tool"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Tools"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_tool"
+        ],
+        "outputNames": [
+            "Tool"
+        ],
+        "properties": [
+            {
+                "displayName": "Name",
+                "name": "name",
+                "type": "string",
+                "default": ""
+            },
+            {
+                "displayName": "Description",
+                "name": "description",
+                "type": "string",
+                "default": ""
+            },
+            {
+                "displayName": "Code",
+                "name": "jsCode",
+                "type": "string",
+                "default": ""
+            }
+        ]
+    },
+    {
+        "displayName": "HTTP Request Tool",
+        "name": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+        "icon": "fa:globe",
+        "group": [
+            "transform"
+        ],
+        "description": "Make HTTP requests as a tool for AI agents",
+        "version": 1,
+        "defaults": {
+            "name": "HTTP Request Tool"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Tools"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_tool"
+        ],
+        "outputNames": [
+            "Tool"
+        ],
+        "properties": [
+            {
+                "displayName": "Name",
+                "name": "name",
+                "type": "string",
+                "default": ""
+            },
+            {
+                "displayName": "Description",
+                "name": "description",
+                "type": "string",
+                "default": ""
+            },
+            {
+                "displayName": "Method",
+                "name": "method",
+                "type": "options",
+                "options": [
+                    {
+                        "name": "GET",
+                        "value": "GET"
+                    },
+                    {
+                        "name": "POST",
+                        "value": "POST"
+                    }
+                ],
+                "default": "GET"
+            },
+            {
+                "displayName": "URL",
+                "name": "url",
+                "type": "string",
+                "default": ""
+            }
+        ]
+    },
+    {
+        "displayName": "Text Classifier",
+        "name": "@n8n/n8n-nodes-langchain.textClassifier",
+        "icon": "fa:tags",
+        "group": [
+            "transform"
+        ],
+        "description": "Classify text into categories using an LLM",
+        "version": 1,
+        "defaults": {
+            "name": "Text Classifier"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Sentiment Analysis",
+        "name": "@n8n/n8n-nodes-langchain.sentimentAnalysis",
+        "icon": "fa:smile",
+        "group": [
+            "transform"
+        ],
+        "description": "Analyze sentiment of text using an LLM",
+        "version": 1,
+        "defaults": {
+            "name": "Sentiment Analysis"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Information Extractor",
+        "name": "@n8n/n8n-nodes-langchain.informationExtractor",
+        "icon": "fa:microscope",
+        "group": [
+            "transform"
+        ],
+        "description": "Extract structured information from text using an LLM",
+        "version": 1,
+        "defaults": {
+            "name": "Information Extractor"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "OpenAI Embeddings",
+        "name": "@n8n/n8n-nodes-langchain.embeddingsOpenAi",
+        "icon": "fa:project-diagram",
+        "group": [
+            "transform"
+        ],
+        "description": "Generate embeddings using OpenAI",
+        "version": 1,
+        "defaults": {
+            "name": "OpenAI Embeddings"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Embeddings"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_embedding"
+        ],
+        "outputNames": [
+            "Embeddings"
+        ],
+        "credentials": [
+            {
+                "name": "openAiApi",
+                "required": true
+            }
+        ],
+        "properties": [
+            {
+                "displayName": "Model",
+                "name": "model",
+                "type": "string",
+                "default": "text-embedding-3-small"
+            }
+        ]
+    },
+    {
+        "displayName": "Pinecone Vector Store",
+        "name": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+        "icon": "fa:database",
+        "group": [
+            "transform"
+        ],
+        "description": "Store and retrieve vectors from Pinecone",
+        "version": 1,
+        "defaults": {
+            "name": "Pinecone Vector Store"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Vector Stores"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_embedding"
+        ],
+        "outputs": [
+            "ai_vectorStore"
+        ],
+        "outputNames": [
+            "Vector Store"
+        ],
+        "credentials": [
+            {
+                "name": "pineconeApi",
+                "required": true
+            }
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "In-Memory Vector Store",
+        "name": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+        "icon": "fa:memory",
+        "group": [
+            "transform"
+        ],
+        "description": "Store vectors in memory for testing",
+        "version": 1,
+        "defaults": {
+            "name": "In-Memory Vector Store"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Vector Stores"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_embedding"
+        ],
+        "outputs": [
+            "ai_vectorStore"
+        ],
+        "outputNames": [
+            "Vector Store"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Recursive Character Text Splitter",
+        "name": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+        "icon": "fa:cut",
+        "group": [
+            "transform"
+        ],
+        "description": "Split text into chunks",
+        "version": 1,
+        "defaults": {
+            "name": "Recursive Character Text Splitter"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Text Splitters"
+                ]
+            }
+        },
+        "inputs": [],
+        "outputs": [
+            "ai_textSplitter"
+        ],
+        "outputNames": [
+            "Text Splitter"
+        ],
+        "properties": [
+            {
+                "displayName": "Chunk Size",
+                "name": "chunkSize",
+                "type": "number",
+                "default": 1000
+            },
+            {
+                "displayName": "Chunk Overlap",
+                "name": "chunkOverlap",
+                "type": "number",
+                "default": 200
+            }
+        ]
+    },
+    {
+        "displayName": "Document Default Data Loader",
+        "name": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+        "icon": "fa:file",
+        "group": [
+            "transform"
+        ],
+        "description": "Load documents from binary data",
+        "version": 1,
+        "defaults": {
+            "name": "Default Data Loader"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Document Loaders"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_textSplitter"
+        ],
+        "outputs": [
+            "ai_document"
+        ],
+        "outputNames": [
+            "Document"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Vector Store Retriever",
+        "name": "@n8n/n8n-nodes-langchain.retrieverVectorStore",
+        "icon": "fa:search",
+        "group": [
+            "transform"
+        ],
+        "description": "Retrieve documents from a vector store",
+        "version": 1,
+        "defaults": {
+            "name": "Vector Store Retriever"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Retrievers"
+                ]
+            }
+        },
+        "inputs": [
+            "ai_vectorStore"
+        ],
+        "outputs": [
+            "ai_retriever"
+        ],
+        "outputNames": [
+            "Retriever"
+        ],
+        "properties": [
+            {
+                "displayName": "Top K",
+                "name": "topK",
+                "type": "number",
+                "default": 4
+            }
+        ]
+    },
+    {
+        "displayName": "Question and Answer Chain",
+        "name": "@n8n/n8n-nodes-langchain.chainRetrievalQa",
+        "icon": "fa:question",
+        "group": [
+            "transform"
+        ],
+        "description": "Answer questions using retrieved documents",
+        "version": 1,
+        "defaults": {
+            "name": "Question and Answer Chain"
+        },
+        "codex": {
+            "categories": [
+                "AI"
+            ],
+            "subcategories": {
+                "AI": [
+                    "Chains",
+                    "Root Nodes"
+                ]
+            }
+        },
+        "inputs": [
+            "main",
+            "ai_languageModel",
+            "ai_retriever"
         ],
         "outputs": [
             "main"
