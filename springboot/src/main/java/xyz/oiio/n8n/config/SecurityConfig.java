@@ -72,6 +72,7 @@ public class SecurityConfig {
                                 "/rest/workflows", "/rest/active-workflows", "/rest/license")
                         .permitAll()
                         .requestMatchers("/static/**").permitAll()
+                        .requestMatchers("/types/**").permitAll()
                         .requestMatchers("/rest/health").permitAll()
                         .requestMatchers("/").permitAll()
                         .requestMatchers("/rest/public/**").permitAll()

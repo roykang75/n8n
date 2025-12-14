@@ -200,12 +200,24 @@ export default mergeConfig(
 				'/rest': {
 					target: 'http://localhost:5678',
 					changeOrigin: true,
+					configure: (proxy) => {
+						proxy.on('proxyReq', (proxyReq, req) => {
+							console.log(`[Proxy] ${req.method} ${req.url} -> ${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`);
+						});
+						proxy.on('error', (err) => {
+							console.error('[Proxy Error]', err);
+						});
+					},
 				},
 				'/webhook': {
 					target: 'http://localhost:5678',
 					changeOrigin: true,
 				},
 				'/healthz': {
+					target: 'http://localhost:5678',
+					changeOrigin: true,
+				},
+				'/types': {
 					target: 'http://localhost:5678',
 					changeOrigin: true,
 				},

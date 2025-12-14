@@ -1,0 +1,216 @@
+[
+    {
+        "displayName": "Manual Trigger",
+        "name": "n8n-nodes-base.manualTrigger",
+        "icon": "fa:mouse-pointer",
+        "group": [
+            "trigger"
+        ],
+        "description": "Runs the flow on clicking a button in n8n",
+        "version": 1,
+        "defaults": {
+            "name": "When clicking 'Test workflow'",
+            "color": "#909399"
+        },
+        "inputs": [],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    },
+    {
+        "displayName": "Set",
+        "name": "n8n-nodes-base.set",
+        "icon": "fa:pen",
+        "group": [
+            "transform"
+        ],
+        "description": "Modify, add, or remove data from an item",
+        "version": 3,
+        "defaults": {
+            "name": "Set"
+        },
+        "inputs": [
+            "main"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Mode",
+                "name": "mode",
+                "type": "options",
+                "options": [
+                    {
+                        "name": "Manual Mapping",
+                        "value": "manual"
+                    },
+                    {
+                        "name": "JSON",
+                        "value": "raw"
+                    }
+                ],
+                "default": "manual"
+            },
+            {
+                "displayName": "Fields to Set",
+                "name": "assignments",
+                "type": "assignmentCollection",
+                "default": {}
+            }
+        ]
+    },
+    {
+        "displayName": "Code",
+        "name": "n8n-nodes-base.code",
+        "icon": "fa:code",
+        "group": [
+            "transform"
+        ],
+        "description": "Run custom JavaScript code",
+        "version": 2,
+        "defaults": {
+            "name": "Code"
+        },
+        "inputs": [
+            "main"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Mode",
+                "name": "mode",
+                "type": "options",
+                "options": [
+                    {
+                        "name": "Run Once for All Items",
+                        "value": "runOnceForAllItems"
+                    },
+                    {
+                        "name": "Run Once for Each Item",
+                        "value": "runOnceForEachItem"
+                    }
+                ],
+                "default": "runOnceForAllItems"
+            },
+            {
+                "displayName": "JavaScript Code",
+                "name": "jsCode",
+                "type": "string",
+                "typeOptions": {
+                    "editor": "jsEditor"
+                },
+                "default": "// Loop over input items and add a new field called 'myNewField' to the JSON of each one\nfor (const item of $input.all()) {\n  item.json.myNewField = 1;\n}\n\nreturn $input.all();"
+            }
+        ]
+    },
+    {
+        "displayName": "HTTP Request",
+        "name": "n8n-nodes-base.httpRequest",
+        "icon": "fa:globe",
+        "group": [
+            "transform"
+        ],
+        "description": "Make HTTP requests",
+        "version": 4,
+        "defaults": {
+            "name": "HTTP Request"
+        },
+        "inputs": [
+            "main"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Method",
+                "name": "method",
+                "type": "options",
+                "options": [
+                    {
+                        "name": "GET",
+                        "value": "GET"
+                    },
+                    {
+                        "name": "POST",
+                        "value": "POST"
+                    },
+                    {
+                        "name": "PUT",
+                        "value": "PUT"
+                    },
+                    {
+                        "name": "DELETE",
+                        "value": "DELETE"
+                    },
+                    {
+                        "name": "PATCH",
+                        "value": "PATCH"
+                    },
+                    {
+                        "name": "HEAD",
+                        "value": "HEAD"
+                    }
+                ],
+                "default": "GET"
+            },
+            {
+                "displayName": "URL",
+                "name": "url",
+                "type": "string",
+                "default": "",
+                "placeholder": "https://example.com/api"
+            }
+        ]
+    },
+    {
+        "displayName": "Schedule Trigger",
+        "name": "n8n-nodes-base.scheduleTrigger",
+        "icon": "fa:clock",
+        "group": [
+            "trigger",
+            "schedule"
+        ],
+        "description": "Triggers the workflow at a specific time",
+        "version": 1,
+        "defaults": {
+            "name": "Schedule Trigger"
+        },
+        "inputs": [],
+        "outputs": [
+            "main"
+        ],
+        "properties": [
+            {
+                "displayName": "Trigger Times",
+                "name": "triggerTimes",
+                "type": "fixedCollection",
+                "default": {}
+            }
+        ]
+    },
+    {
+        "displayName": "No Operation",
+        "name": "n8n-nodes-base.noOp",
+        "icon": "fa:arrow-right",
+        "group": [
+            "organization"
+        ],
+        "description": "No Operation - does nothing",
+        "version": 1,
+        "defaults": {
+            "name": "No Operation"
+        },
+        "inputs": [
+            "main"
+        ],
+        "outputs": [
+            "main"
+        ],
+        "properties": []
+    }
+]

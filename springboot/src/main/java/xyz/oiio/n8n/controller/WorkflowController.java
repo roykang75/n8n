@@ -112,6 +112,12 @@ public class WorkflowController {
         }
     }
 
+    @GetMapping("/new")
+    public ResponseEntity<Map<String, String>> getNewWorkflowName() {
+        // Generate default workflow name
+        return ResponseEntity.ok(Map.of("name", "My workflow"));
+    }
+
     private Map<String, Object> workflowToMap(WorkflowEntity workflow) {
         Map<String, Object> map = new java.util.HashMap<>();
         map.put("id", workflow.getId());
