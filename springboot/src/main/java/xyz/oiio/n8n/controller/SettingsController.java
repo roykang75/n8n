@@ -61,10 +61,10 @@ public class SettingsController {
 
                 // General Settings
                 settings.put("pushBackend", "websocket"); // Use WebSocket
-                settings.put("endpointWebhook", "http://localhost:5678/webhook");
-                settings.put("urlBaseWebhook", "http://localhost:5678");
-                settings.put("urlBaseEditor", "http://localhost:8080");
-                settings.put("urlBaseApi", "http://localhost:5678/rest");
+                settings.put("endpointWebhook", "/webhook");
+                settings.put("urlBaseWebhook", "");
+                settings.put("urlBaseEditor", "");
+                settings.put("urlBaseApi", "");
                 settings.put("concurrency", 10);
                 settings.put("executionTimeout", 3600);
                 settings.put("releaseChannel", "stable");

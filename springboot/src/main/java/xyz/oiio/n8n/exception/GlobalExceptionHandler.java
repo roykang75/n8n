@@ -34,12 +34,11 @@ public class GlobalExceptionHandler {
         });
 
         ErrorResponse response = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            "Validation Failed",
-            errors,
-            request.getDescription(false)
-        );
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Validation Failed",
+                errors,
+                request.getDescription(false));
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
@@ -50,12 +49,11 @@ public class GlobalExceptionHandler {
             WebRequest request) {
 
         ErrorResponse response = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.NOT_FOUND.value(),
-            "Entity not found",
-            Map.of("error", ex.getMessage()),
-            request.getDescription(false)
-        );
+                LocalDateTime.now(),
+                HttpStatus.NOT_FOUND.value(),
+                "Entity not found",
+                Map.of("error", ex.getMessage()),
+                request.getDescription(false));
 
         return new ResponseEntity<>(response, HttpStatus.NOT_FOUND);
     }
@@ -66,30 +64,31 @@ public class GlobalExceptionHandler {
             WebRequest request) {
 
         ErrorResponse response = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.BAD_REQUEST.value(),
-            "Bad request",
-            Map.of("error", ex.getMessage()),
-            request.getDescription(false)
-        );
+                LocalDateTime.now(),
+                HttpStatus.BAD_REQUEST.value(),
+                "Bad request",
+                Map.of("error", ex.getMessage()),
+                request.getDescription(false));
 
         return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorResponse> handleGlobalException(
+    public ResponseEntity<?> handleGlobalException(
             Exception ex,
             WebRequest request) {
-
+        log.error("=== GLOBAL EXCEPTION HANDLER ===", ex);
+        log.error("Exception type: {}", ex.getClass().getName());
+        log.error("Exception message: {}", ex.getMessage());
+        log.error("Request description: {}", request.getDescription(true));
         log.error("Unexpected error occurred", ex);
 
         ErrorResponse response = new ErrorResponse(
-            LocalDateTime.now(),
-            HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            "Internal server error",
-            Map.of("error", "An unexpected error occurred"),
-            request.getDescription(false)
-        );
+                LocalDateTime.now(),
+                HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                "Internal server error",
+                Map.of("error", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred"),
+                request.getDescription(false));
 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }

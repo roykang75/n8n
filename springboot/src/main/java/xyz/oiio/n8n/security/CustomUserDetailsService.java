@@ -22,7 +22,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         private final UserRepository userRepository;
 
         @Override
-        @Transactional
+        @Transactional(readOnly = true, noRollbackFor = UsernameNotFoundException.class)
         public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
                 xyz.oiio.n8n.entity.User user = userRepository.findByEmail(email)
                                 .orElseThrow(() -> new UsernameNotFoundException(
@@ -42,7 +42,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                                 Collections.singletonList(new SimpleGrantedAuthority("ROLE_" + user.getRole().name())));
         }
 
-        @Transactional
+        @Transactional(readOnly = true, noRollbackFor = UsernameNotFoundException.class)
         public UserDetails loadUserById(String userId) throws UsernameNotFoundException {
                 xyz.oiio.n8n.entity.User user = userRepository.findById(userId)
                                 .orElseThrow(() -> new UsernameNotFoundException("User not found with id: " + userId));
