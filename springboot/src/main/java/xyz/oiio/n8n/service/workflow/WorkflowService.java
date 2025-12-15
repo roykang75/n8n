@@ -38,9 +38,10 @@ public class WorkflowService {
     @Transactional
     public WorkflowEntity createWorkflow(WorkflowRequest request, User owner) {
         // Check if workflow name already exists for user
-        if (workflowRepository.existsByNameAndOwner(request.getName(), owner)) {
-            throw new IllegalArgumentException("Workflow name already exists: " + request.getName());
-        }
+        // if (workflowRepository.existsByNameAndOwner(request.getName(), owner)) {
+        // throw new IllegalArgumentException("Workflow name already exists: " +
+        // request.getName());
+        // }
 
         // Don't set ID - let @GeneratedValue create it automatically
         WorkflowEntity workflow = WorkflowEntity.builder()
@@ -84,10 +85,11 @@ public class WorkflowService {
             WorkflowEntity workflow = workflowRepository.findById(workflowId)
                     .orElseThrow(() -> new NotFoundException("Workflow not found with id: " + workflowId));
 
-            if (!workflow.getName().equals(request.getName()) &&
-                    workflowRepository.existsByNameAndOwner(request.getName(), workflow.getOwner())) {
-                throw new IllegalArgumentException("Workflow name already exists: " + request.getName());
-            }
+            // Check if workflow name already exists for user
+            // if (workflowRepository.existsByNameAndOwner(request.getName(), owner)) {
+            // throw new IllegalArgumentException("Workflow name already exists: " +
+            // request.getName());
+            // }
 
             // Update fields on attached entity (managed state)
             workflow.setName(request.getName());

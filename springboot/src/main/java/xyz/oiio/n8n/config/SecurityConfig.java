@@ -69,7 +69,15 @@ public class SecurityConfig {
                                 "/rest/logout", "/rest/forgot-password",
                                 "/rest/resolve-signup-token", "/rest/settings",
                                 "/rest/projects/**", "/rest/roles", "/rest/module-settings",
-                                "/rest/workflows", "/rest/active-workflows", "/rest/license")
+                                "/rest/workflows", "/rest/active-workflows", "/rest/license",
+                                // Missing public endpoints found in n8n codebase
+                                "/rest/push/**",
+                                "/rest/binary-data/**",
+                                "/rest/oauth1-credential/callback",
+                                "/rest/oauth2-credential/callback",
+                                "/mcp-oauth/authorize/**",
+                                "/rest/chat/conversations/**",
+                                "/error") // Allow error page to be visible for 404s etc
                         .permitAll()
                         .requestMatchers("/static/**").permitAll()
                         .requestMatchers("/types/**").permitAll()

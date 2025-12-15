@@ -129,5 +129,6 @@ public class WorkflowEntity extends BaseTimeEntity {
         private String templateId;
         private String templateCreds;
         private String instanceId;
+        private Boolean templateCredsSetupCompleted;
     }
 }

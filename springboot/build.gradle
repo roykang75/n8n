@@ -85,8 +85,14 @@ task generateNodeTypes(type: Exec) {
     // Run pnpm run generate:types in packages/cli
     workingDir '../packages/cli'
     
+    // Resolve pnpm path for macOS/Homebrew if needed
+    def pnpmExec = 'pnpm'
+    if (System.getProperty("os.name").toLowerCase().contains("mac") && file('/opt/homebrew/bin/pnpm').exists()) {
+        pnpmExec = '/opt/homebrew/bin/pnpm'
+    }
+
     // Check if pnpm is available in env, otherwise fail
-    commandLine 'pnpm', 'run', 'generate:types'
+    commandLine pnpmExec, 'run', 'generate:types'
     
     // Ensure generation errors break the build
     ignoreExitValue = false

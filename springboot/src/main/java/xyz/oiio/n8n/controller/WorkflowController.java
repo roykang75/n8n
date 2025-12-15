@@ -37,6 +37,8 @@ public class WorkflowController {
     private final WorkflowService workflowService;
     private final UserService userService;
 
+    private final ObjectMapper objectMapper;
+
     @PostMapping
     public ResponseEntity<Map<String, Object>> createWorkflow(
             @Valid @RequestBody CreateWorkflowRequest request,
@@ -48,7 +50,7 @@ public class WorkflowController {
             }
 
             xyz.oiio.n8n.entity.User currentUser = userService.getUserById(authentication.getName());
-            WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(),
+            WorkflowEntity createdWorkflow = workflowService.createWorkflow(request.toServiceRequest(objectMapper),
                     currentUser);
 
             Map<String, Object> workflowData = workflowToMap(createdWorkflow);
@@ -174,7 +176,8 @@ public class WorkflowController {
             @PathVariable String workflowId,
             @Valid @RequestBody UpdateWorkflowRequest request) {
         try {
-            WorkflowEntity updatedWorkflow = workflowService.updateWorkflow(workflowId, request.toServiceRequest());
+            WorkflowEntity updatedWorkflow = workflowService.updateWorkflow(workflowId,
+                    request.toServiceRequest(objectMapper));
             return ResponseEntity
                     .ok(new WorkflowResponse(true, "Workflow updated successfully", new WorkflowDto(updatedWorkflow)));
         } catch (WorkflowService.NotFoundException e) {
@@ -274,7 +277,7 @@ public class WorkflowController {
         @JsonProperty("tags")
         private List<Object> tags = List.of();
 
-        public WorkflowService.WorkflowRequest toServiceRequest() {
+        public WorkflowService.WorkflowRequest toServiceRequest(ObjectMapper mapper) {
             List<String> tagNamesList = tags.stream()
                     .map(t -> {
                         if (t instanceof Map) {
@@ -284,8 +287,7 @@ public class WorkflowController {
                     })
                     .collect(Collectors.toList());
 
-            // ObjectMapper로 settings와 meta를 올바른 타입으로 변환
-            ObjectMapper mapper = new ObjectMapper();
+            // settings와 meta 변환 (Injected ObjectMapper 사용)
             WorkflowEntity.WorkflowSettings settingsObj = settings != null
                     ? mapper.convertValue(settings, WorkflowEntity.WorkflowSettings.class)
                     : new WorkflowEntity.WorkflowSettings();
@@ -318,7 +320,7 @@ public class WorkflowController {
         @JsonProperty("tags")
         private List<Object> tags = List.of();
 
-        public WorkflowService.WorkflowRequest toServiceRequest() {
+        public WorkflowService.WorkflowRequest toServiceRequest(ObjectMapper mapper) {
             List<String> tagNamesList = tags.stream()
                     .map(t -> {
                         if (t instanceof Map) {
@@ -328,8 +330,7 @@ public class WorkflowController {
                     })
                     .collect(Collectors.toList());
 
-            // ObjectMapper로 settings와 meta를 올바른 타입으로 변환
-            ObjectMapper mapper = new ObjectMapper();
+            // settings와 meta 변환 (Injected ObjectMapper 사용)
             WorkflowEntity.WorkflowSettings settingsObj = settings != null
                     ? mapper.convertValue(settings, WorkflowEntity.WorkflowSettings.class)
                     : new WorkflowEntity.WorkflowSettings();
