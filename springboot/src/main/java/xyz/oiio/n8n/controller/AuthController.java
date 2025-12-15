@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -34,6 +35,37 @@ public class AuthController {
     private final UserService userService;
     private final JwtTokenProvider tokenProvider;
     private final PasswordEncoder passwordEncoder;
+
+    @GetMapping("/login")
+    public ResponseEntity<Map<String, Object>> currentUser(
+            @AuthenticationPrincipal org.springframework.security.core.userdetails.UserDetails userDetails) {
+        log.info("GET /login - Checking current session");
+
+        if (userDetails == null) {
+            // Should be handled by Security filter, but just in case
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        // Ideally, cast to CustomUserDetails or look up entity
+        Optional<xyz.oiio.n8n.entity.User> userOpt = userService.findByEmail(userDetails.getUsername());
+
+        if (userOpt.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+
+        xyz.oiio.n8n.entity.User user = userOpt.get();
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("id", user.getId());
+        userInfo.put("email", user.getEmail());
+        userInfo.put("firstName", user.getFirstName());
+        userInfo.put("lastName", user.getLastName());
+        userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
+        userInfo.put("mfaEnabled", user.getMfaEnabled());
+        // Add other fields if necessary (settings, globalScopes)
+
+        // Node.js returns PublicUser. Assuming wrapper 'data' is expected by n8n-client
+        return ResponseEntity.ok(Map.of("data", userInfo));
+    }
 
     @PostMapping("/login")
     public ResponseEntity<Map<String, Object>> authenticateUser(@Valid @RequestBody LoginRequest loginRequest,
@@ -64,6 +96,7 @@ public class AuthController {
                 userInfo.put("firstName", user.getFirstName());
                 userInfo.put("lastName", user.getLastName());
                 userInfo.put("roles", List.of(user.getRole().name().toLowerCase()));
+                userInfo.put("mfaEnabled", user.getMfaEnabled());
             });
 
             return ResponseEntity.ok(Map.of("data", userInfo));

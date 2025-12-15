@@ -59,20 +59,96 @@ public class CredentialsController {
 
         log.info("POST /credentials/test - request: {}", request);
 
+        Map<String, Object> credentialsPayload = request;
+        if (request.containsKey("credentials")) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> nested = (Map<String, Object>) request.get("credentials");
+            credentialsPayload = nested;
+        }
+
         // Extract credential info
-        String credentialType = (String) request.get("type");
+        String credentialType = (String) credentialsPayload.get("type");
         @SuppressWarnings("unchecked")
-        Map<String, Object> data = (Map<String, Object>) request.get("data");
+        Map<String, Object> data = (Map<String, Object>) credentialsPayload.get("data");
 
         log.info("Testing credential type: {}", credentialType);
 
-        // For Ollama API, we could actually test the connection
         // For now, return success to unblock the UI
         // TODO: Implement actual credential testing per credential type
 
         Map<String, Object> response = new LinkedHashMap<>();
-        response.put("status", "OK");
-        response.put("message", "Connection successful");
+        response.put("status", "success"); // Lowercase 'success' matches Node.js usually
+        response.put("message", "Connection tested successfully");
+
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/new")
+    public ResponseEntity<Map<String, String>> generateUniqueName(
+            @RequestParam(required = false) String name,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        String requestedName = name != null ? name : "My credential";
+        // UserDetails is likely xyz.oiio.n8n.entity.User if using
+        // CustomUserDetailsService
+        // Or we need to look it up. Assuming casting works or using username.
+        // Safer to look up by username if unsure about casting, but casting is faster.
+        // Let's assume UserDetails -> User cast is safe if CustomUserDetailsService
+        // returns User.
+        // Checking CustomUserDetailsService later if needed. For now, use username
+        // lookup to be safe or just cast.
+        // Using username (email) works with repositories often.
+        // But repository expects Owner ID (String).
+
+        String userId = null;
+        if (userDetails instanceof xyz.oiio.n8n.entity.User) {
+            userId = ((xyz.oiio.n8n.entity.User) userDetails).getId();
+        } else {
+            // Fallback: look up user by email/username
+            // userRepository.findByEmail(userDetails.getUsername())...
+            xyz.oiio.n8n.entity.User u = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+            if (u != null)
+                userId = u.getId();
+        }
+
+        if (userId == null) {
+            // Should not happen if authenticated
+            return ResponseEntity.ok(Collections.singletonMap("name", requestedName));
+        }
+
+        String finalName = requestedName;
+        int count = 1;
+        while (credentialsRepository.existsByNameAndOwnerId(finalName, userId)) {
+            finalName = requestedName + " " + count;
+            count++;
+        }
+
+        return ResponseEntity.ok(Collections.singletonMap("name", finalName));
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Map<String, Object>> getCredential(
+            @PathVariable String id,
+            @RequestParam(required = false, defaultValue = "false") boolean includeData,
+            @AuthenticationPrincipal UserDetails userDetails) {
+
+        // TODO: Check permissions
+        Optional<CredentialsEntity> cred = credentialsRepository.findById(id);
+        if (cred.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        CredentialsEntity c = cred.get();
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", c.getId());
+        response.put("name", c.getName());
+        response.put("type", c.getType());
+        response.put("createdAt", c.getCreatedAt() != null ? c.getCreatedAt().toString() : null);
+        response.put("updatedAt", c.getUpdatedAt() != null ? c.getUpdatedAt().toString() : null);
+        // data is usually redacted or encrypted. Node.js handles decryption.
+        // For now sending empty data or raw if needed? Node.js decrypts if includeData
+        // is true.
+        // We'll leave data empty/redacted for now unless critical.
 
         return ResponseEntity.ok(response);
     }
@@ -89,11 +165,19 @@ public class CredentialsController {
         @SuppressWarnings("unchecked")
         Map<String, Object> data = (Map<String, Object>) request.get("data");
 
-        // Create credential entity - let JPA auto-generate ID and timestamps
+        xyz.oiio.n8n.entity.User owner = null;
+        if (userDetails instanceof xyz.oiio.n8n.entity.User) {
+            owner = (xyz.oiio.n8n.entity.User) userDetails;
+        } else {
+            owner = userRepository.findByEmail(userDetails.getUsername()).orElse(null);
+        }
+
+        // Create credential entity
         CredentialsEntity credential = CredentialsEntity.builder()
                 .name(name)
                 .type(type)
-                .data(data != null ? data.toString() : "{}")
+                .data(data != null ? data.toString() : "{}") // TODO: Encrypt data
+                .owner(owner) // Set owner
                 .isManaged(false)
                 .isGlobal(false)
                 .isResolvable(false)

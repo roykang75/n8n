@@ -1,5 +1,6 @@
 package xyz.oiio.n8n.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.Size;
@@ -39,6 +40,7 @@ public class User extends BaseTimeEntity {
     private String lastName;
 
     @Column(name = "password")
+    @JsonIgnore
     private String password;
 
     @Enumerated(EnumType.STRING)
@@ -55,6 +57,7 @@ public class User extends BaseTimeEntity {
     private Boolean mfaEnabled = false;
 
     @Column(name = "mfa_secret")
+    @JsonIgnore
     private String mfaSecret;
 
     @JdbcTypeCode(SqlTypes.JSON)
@@ -73,12 +76,15 @@ public class User extends BaseTimeEntity {
     private Object personalizationAnswers;
 
     @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<UserAuthIdentity> authIdentities;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<WorkflowEntity> workflows;
 
     @OneToMany(mappedBy = "owner", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnore
     private List<CredentialsEntity> credentials;
 
     public enum UserRole {

@@ -34,7 +34,7 @@ public class GlobalExceptionHandler {
         });
 
         ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
+                LocalDateTime.now().toString(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Validation Failed",
                 errors,
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
             WebRequest request) {
 
         ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
+                LocalDateTime.now().toString(),
                 HttpStatus.NOT_FOUND.value(),
                 "Entity not found",
                 Map.of("error", ex.getMessage()),
@@ -64,7 +64,7 @@ public class GlobalExceptionHandler {
             WebRequest request) {
 
         ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
+                LocalDateTime.now().toString(),
                 HttpStatus.BAD_REQUEST.value(),
                 "Bad request",
                 Map.of("error", ex.getMessage()),
@@ -84,7 +84,7 @@ public class GlobalExceptionHandler {
         log.error("Unexpected error occurred", ex);
 
         ErrorResponse response = new ErrorResponse(
-                LocalDateTime.now(),
+                LocalDateTime.now().toString(),
                 HttpStatus.INTERNAL_SERVER_ERROR.value(),
                 "Internal server error",
                 Map.of("error", ex.getMessage() != null ? ex.getMessage() : "An unexpected error occurred"),
@@ -97,7 +97,7 @@ public class GlobalExceptionHandler {
     @AllArgsConstructor
     @NoArgsConstructor
     public static class ErrorResponse {
-        private LocalDateTime timestamp;
+        private String timestamp;
         private int status;
         private String error;
         private Map<String, String> errors;
