@@ -14,9 +14,9 @@ public class PushController {
 
     private final PushService pushService;
 
-    @GetMapping("/rest/push")
-    public SseEmitter push(@RequestParam String pushRef) {
-        log.info("New push connection requested: {}", pushRef);
-        return pushService.createEmitter(pushRef);
-    }
+    // @GetMapping("/rest/push")
+    // public SseEmitter push(@RequestParam String pushRef) {
+    // log.info("New push connection requested: {}", pushRef);
+    // return pushService.createEmitter(pushRef);
+    // }
 }

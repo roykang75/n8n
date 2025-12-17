@@ -1,8 +1,13 @@
 package xyz.oiio.n8n.push;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import org.springframework.web.socket.TextMessage;
+import org.springframework.web.socket.WebSocketSession;
 
 import java.io.IOException;
 import java.util.Map;
@@ -10,92 +15,125 @@ import java.util.concurrent.ConcurrentHashMap;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class PushService {
 
-    private final Map<String, SseEmitter> emitters = new ConcurrentHashMap<>();
+    private final ObjectMapper objectMapper;
+    private final Map<String, SseEmitter> sseEmitters = new ConcurrentHashMap<>();
+    private final Map<String, WebSocketSession> wsSessions = new ConcurrentHashMap<>();
 
     public SseEmitter createEmitter(String pushRef) {
         // Timeout 0 means infinite (or rely on server config)
-        // Original n8n sets socket timeout to 0
         SseEmitter emitter = new SseEmitter(0L);
 
-        emitters.put(pushRef, emitter);
+        sseEmitters.put(pushRef, emitter);
 
         emitter.onCompletion(() -> {
             log.debug("Emitter completed: {}", pushRef);
-            emitters.remove(pushRef);
+            sseEmitters.remove(pushRef);
         });
         emitter.onTimeout(() -> {
             log.debug("Emitter timeout: {}", pushRef);
             emitter.complete();
-            emitters.remove(pushRef);
+            sseEmitters.remove(pushRef);
         });
         emitter.onError((e) -> {
             log.debug("Emitter error: {}", pushRef, e);
             emitter.complete();
-            emitters.remove(pushRef);
+            sseEmitters.remove(pushRef);
         });
 
-        // Send initial :ok message as per n8n protocol
+        // Send confirmation
         try {
-            // :ok is a comment in SSE, or just data? n8n uses ':ok\n\n' which looks like a
-            // comment or custom keep-alive
-            // checking sse.push.ts: res.write(':ok\n\n'); -> This is likely interpreted as
-            // a comment by standard EventSource,
-            // or a custom heartbeat if they read raw stream.
-            // Spring SseEmitter sends "data:" prefix for .send().
-            // To send raw comments/custom strings we might need to bypass or use specific
-            // method if available,
-            // but SseEmitter is structured.
-            // However, n8n client might expect exactly ":ok".
-            // Spring SseEmitter doesn't easily support raw writes without "data:",
-            // "event:", etc.
-            // But let's try standard SseEmitter.event() builder.
-
-            // Actually, SseEmitter.send(object) sends "data: object\n\n".
-            // If we need ":ok", that's a comment.
-            // SseEmitter can send comments? No direct API for comments in basic usage.
-            // but we can try to send it as a heartbeat if we assume standard usage.
-            // Only way to send raw ":ok" with SseEmitter is tricky.
-            // Let's assume sending a "data: ok" or similar might be enough, OR
-            // the custom n8n client parses it.
-            // Wait, standard EventSource ignores lines starting with ':'.
-            // So ':ok' is a comment. It signals "connected" effectively.
-
-            // For now, let's just trigger a dummy event or comment if possible.
-            // If SseEmitter issues are found, we might need a raw Controller writing to
-            // OutputStream.
-            // But let's try sending a heartbeat event with empty data to establish
-            // connection.
-            emitter.send(SseEmitter.event().comment("ok"));
-
+            // SseEmitter can't easily send comments, so sending empty data or similar
+            emitter.send(SseEmitter.event().name("open").data(""));
         } catch (IOException e) {
-            log.error("Failed to send initial ok", e);
-            emitters.remove(pushRef);
+            log.error("Failed to send initial open event", e);
+            sseEmitters.remove(pushRef);
         }
 
         return emitter;
     }
 
-    // Heartbeat mechanism (can be scheduled)
-    public void sendHeartbeat() {
-        emitters.forEach((pushRef, emitter) -> {
+    public void addWebSocketSession(String pushRef, WebSocketSession session) {
+        wsSessions.put(pushRef, session);
+    }
+
+    public void removeWebSocketSession(String pushRef) {
+        wsSessions.remove(pushRef);
+    }
+
+    public void sendToAll(Object data) {
+        // Send to SSE
+        sseEmitters.forEach((pushRef, emitter) -> {
             try {
-                emitter.send(SseEmitter.event().comment("ping"));
+                emitter.send(data);
             } catch (IOException e) {
-                // Dead emitter, remove it
-                emitters.remove(pushRef);
+                sseEmitters.remove(pushRef);
+            }
+        });
+
+        // Send to WebSocket
+        String json = "";
+        try {
+            json = objectMapper.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            log.error("Failed to serialize push data", e);
+            return;
+        }
+
+        final String payload = json;
+        wsSessions.forEach((pushRef, session) -> {
+            if (session.isOpen()) {
+                try {
+                    session.sendMessage(new TextMessage(payload));
+                } catch (IOException e) {
+                    log.error("WebSocket send error", e);
+                }
+            } else {
+                wsSessions.remove(pushRef);
             }
         });
     }
 
-    public void sendToAll(Object data) {
-        emitters.forEach((pushRef, emitter) -> {
+    // Heartbeat mechanism (can be scheduled)
+    public void sendHeartbeat() {
+        sseEmitters.forEach((pushRef, emitter) -> {
             try {
-                emitter.send(data);
+                emitter.send(SseEmitter.event().comment("ping"));
             } catch (IOException e) {
-                emitters.remove(pushRef);
+                sseEmitters.remove(pushRef);
             }
         });
+    }
+
+    public void send(String type, Object data, String pushRef) {
+        if (pushRef == null) {
+            return;
+        }
+
+        Map<String, Object> message = Map.of("type", type, "data", data);
+
+        // Send to WebSocket if connected
+        WebSocketSession session = wsSessions.get(pushRef);
+        if (session != null && session.isOpen()) {
+            try {
+                String payload = objectMapper.writeValueAsString(message);
+                session.sendMessage(new TextMessage(payload));
+            } catch (IOException e) {
+                log.error("Failed to send WebSocket message to {}", pushRef, e);
+            }
+        }
+
+        // Send to SSE if connected
+        SseEmitter emitter = sseEmitters.get(pushRef);
+        if (emitter != null) {
+            try {
+                emitter.send(message);
+            } catch (IOException e) {
+                log.debug("Failed to send SSE message to {}", pushRef, e);
+                sseEmitters.remove(pushRef);
+            }
+        }
     }
 }

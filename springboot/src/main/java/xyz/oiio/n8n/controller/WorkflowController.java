@@ -22,11 +22,15 @@ import org.springframework.web.bind.annotation.*;
 import xyz.oiio.n8n.entity.WorkflowEntity;
 import xyz.oiio.n8n.service.workflow.WorkflowService;
 import xyz.oiio.n8n.service.user.UserService;
+import jakarta.servlet.http.HttpServletRequest;
 
+import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import java.util.UUID;
 
 @Slf4j
 @RestController
@@ -36,6 +40,7 @@ public class WorkflowController {
 
     private final WorkflowService workflowService;
     private final UserService userService;
+    private final xyz.oiio.n8n.service.workflow.WorkflowRunnerService workflowRunnerService;
 
     private final ObjectMapper objectMapper;
 
@@ -223,6 +228,63 @@ public class WorkflowController {
                     .build());
         } catch (WorkflowService.NotFoundException e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PostMapping("/{workflowId}/run")
+    public ResponseEntity<Map<String, Object>> runWorkflow(
+            @PathVariable String workflowId,
+            @RequestBody RunWorkflowRequest request,
+            @RequestParam(required = false) String pushRef,
+            @RequestParam(name = "push-ref", required = false) String pushRefKebab,
+            @RequestHeader(name = "push-ref", required = false) String pushRefHeader,
+            HttpServletRequest httpRequest,
+            Authentication authentication) {
+        try {
+            // Validate workflow exists
+            // WorkflowEntity workflow = workflowService.getWorkflowById(workflowId);
+
+            // Determine pushRef from any source
+            String finalPushRef = pushRef;
+            if (finalPushRef == null)
+                finalPushRef = pushRefKebab;
+            if (finalPushRef == null)
+                finalPushRef = pushRefHeader;
+
+            log.info("Received run request for workflow: {}", workflowId);
+            log.info("PushRef resolution - Param: {}, KebabParam: {}, Header: {}, Final: {}", pushRef, pushRefKebab,
+                    pushRefHeader, finalPushRef);
+
+            // Log all headers for debugging if still null
+            if (finalPushRef == null) {
+                log.warn("PushRef not found! Dumping headers:");
+                Collections.list(httpRequest.getHeaderNames()).forEach(
+                        headerName -> log.warn("Header {}: {}", headerName, httpRequest.getHeader(headerName)));
+
+                // Fallback attempt: check 'pushRef' header (camelCase)
+                String camelHeader = httpRequest.getHeader("pushRef");
+                if (camelHeader != null) {
+                    finalPushRef = camelHeader;
+                    log.info("Found pushRef in camelCase header: {}", finalPushRef);
+                }
+            }
+
+            Map<String, Object> data = new java.util.HashMap<>();
+            String executionId = "exec-" + UUID.randomUUID().toString();
+            data.put("executionId", executionId);
+            data.put("waitingForWebhook", false);
+
+            log.info("Starting workflow run. ID: {}, PushRef: {}", executionId, finalPushRef);
+
+            // We need the pushRef to send events back.
+            // It should be passed as a @RequestParam
+            workflowRunnerService.runWorkflow(executionId, finalPushRef, request);
+
+            return ResponseEntity.ok(Map.of("data", data));
+        } catch (Exception e) {
+            log.error("Error running workflow: ", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("message", e.getMessage()));
         }
     }
 
@@ -430,5 +492,16 @@ public class WorkflowController {
             this.first = page.isFirst();
             this.last = page.isLast();
         }
+    }
+
+    @Data
+    @AllArgsConstructor
+    @NoArgsConstructor
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    public static class RunWorkflowRequest {
+        private Map<String, Object> workflowData;
+        private List<Map<String, Object>> startNodes;
+        private Map<String, Object> triggerToStartFrom;
+        private Map<String, Object> runData;
     }
 }
